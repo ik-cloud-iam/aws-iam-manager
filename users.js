@@ -30,7 +30,7 @@ const deleteUser = UserName => new Promise((resolve, reject) => {
     const groupRemovalPromises = userGroups.Groups.map(group => {
       log.info({ name: group.GroupName }, 'Removing user from group...');
 
-      groups.removeUserFromGroup(UserName, group.GroupName)
+      return groups.removeUserFromGroup(UserName, group.GroupName);
     });
 
     Promise.all(groupRemovalPromises).then(() =>

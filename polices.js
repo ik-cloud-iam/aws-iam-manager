@@ -33,13 +33,13 @@ async function detachFromAllEntities(PolicyArn) {
     PathPrefix: process.env.USERS_PATH,
   }).promise();
 
-  log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Entities using policy');
-
   const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
     iam.detachGroupPolicy({
       GroupName: group.GroupName,
       PolicyArn
     }).promise());
+
+  log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
   return await Promise.all(detachRequests);
 }

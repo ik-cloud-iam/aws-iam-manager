@@ -45,7 +45,7 @@ async function attachGroupPolicy (GroupName, PolicyName) {
   }
 
   const PolicyArn = policies[0].Arn;
-  log.info({ PolicyArn, PolicyName }, 'Policy ARN found');
+  log.info({ PolicyArn, PolicyName, GroupName }, 'Policy ARN attached');
 
   return iam.attachGroupPolicy({
     GroupName,

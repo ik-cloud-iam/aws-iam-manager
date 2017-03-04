@@ -21,7 +21,8 @@ const groups = require('./groups');
 const policies = require('./polices');
 const sts = require('./sts');
 
-const getAuth = () => `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
+const getAuth = () => process.env.GITHUB_ACCESS_TOKEN &&
+  `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
 
 async function getJson(url) {
   log.info({ url }, 'Downloading...');
@@ -52,8 +53,8 @@ async function processAccount(contentsUrl) {
     }, 'Blobs downloaded');
 
     await users.update(usersData);
-    await groups.update(groupsData);
     await policies.update(policiesData);
+    await groups.update(groupsData);
     await groups.updatePolicies(groupsData);
 
   } catch(err) {
