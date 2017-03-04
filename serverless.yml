@@ -42,7 +42,7 @@ region: us-east-1
 
 functions:
   IAMManagerSNSHandler:
-    handler: index.handler
+    handler: lib/index.handler
     events:
       - sns:
           topicName: IAMManagerNotifyTopic

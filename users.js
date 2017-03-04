@@ -5,23 +5,41 @@ const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const _ = require('lodash');
 
+const groups = require('./groups');
+
 AWS.config.setPromisesDependency(Promise);
 
 const iam = new AWS.IAM();
 const log = bunyan.createLogger({ name: 'users' });
 
-const createUser = UserName => new Promise((resolve, reject) => {
+const createUser = UserName => {
   log.info({ UserName }, 'Creating new user...');
 
-  iam.createUser({
+  return iam.createUser({
     UserName,
     Path: process.env.USERS_PATH,
-  }).promise().then(resolve).catch(reject);
-});
+  }).promise();
+};
 
 const deleteUser = UserName => new Promise((resolve, reject) => {
   log.info({ UserName }, 'Deleting old user...');
-  iam.deleteUser({ UserName }).promise().then(resolve).catch(reject);
+
+  iam.listGroupsForUser({ UserName }).promise().then(userGroups => {
+    log.info({ userGroups }, 'Removing user from groups...');
+
+    const groupRemovalPromises = userGroups.Groups.map(group => {
+      log.info({ name: group.GroupName }, 'Removing user from group...');
+
+      groups.removeUserFromGroup(UserName, group.GroupName)
+    });
+
+    Promise.all(groupRemovalPromises).then(() =>
+      iam.deleteUser({ UserName }).promise().then(resolve).catch(reject)
+    ).catch(reject);
+
+  }).catch(error => {
+    reject();
+  });
 });
 
 const update = json => new Promise((resolve, reject) => {

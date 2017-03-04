@@ -10,6 +10,8 @@ AWS.config.setPromisesDependency(Promise);
 const iam = new AWS.IAM();
 const log = bunyan.createLogger({ name: 'groups' });
 
+const getPolicyArn = require('./polices').getPolicyArn;
+
 const addUserToGroup = (UserName, GroupName) => new Promise((resolve, reject) => {
   log.info({ UserName, GroupName }, 'Assigning user to group');
 
@@ -34,43 +36,22 @@ const createGroup = GroupName => new Promise((resolve, reject) => {
   }).promise().then(resolve).catch(reject);
 });
 
-const getPolicyArn = PolicyName => new Promise((resolve, reject) => {
-  log.info({ PolicyName }, 'Getting policy...');
-
-  iam.listPolicies({
-    PathPrefix: process.env.USERS_PATH,
-  }).promise()
-    .then(payload => {
-      log.info({ payload }, 'getPolicyArn response');
-
-      return resolve(payload.Policies.filter(policy => policy.PolicyName === PolicyName))
-    })
-    .catch(reject);
-});
-
-const attachGroupPolicy = (GroupName, PolicyName) => new Promise((resolve, reject) => {
+async function attachGroupPolicy (GroupName, PolicyName) {
   log.info({ GroupName, PolicyName }, 'Attaching policy to group');
 
-  getPolicyArn(PolicyName).then(policies => {
-    if (policies.length === 0) {
-      log.error({ PolicyName }, 'Requested policy not found!');
-      return reject();
-    }
+  const policies = await getPolicyArn(PolicyName);
+  if (policies.length === 0) {
+    log.error({ PolicyName }, 'Requested policy not found!');
+  }
 
-    const PolicyArn = policies[0].Arn;
+  const PolicyArn = policies[0].Arn;
+  log.info({ PolicyArn, PolicyName }, 'Policy ARN found');
 
-    log.info({ PolicyArn, PolicyName }, 'Policy ARN found');
-
-    return iam.attachGroupPolicy({
-      GroupName,
-      PolicyArn,
-    }).promise().then(data => {
-      log.info(data, 'Group policy attached');
-
-      return resolve(data);
-    }).catch(reject);
-  }).catch(reject);
-});
+  return iam.attachGroupPolicy({
+    GroupName,
+    PolicyArn,
+  }).promise();
+};
 
 const reassignUsers = (data, group) => new Promise((resolve, reject) => {
   const oldGroupUsers = data.Users.map(u => u.UserName);
@@ -86,18 +67,14 @@ const reassignUsers = (data, group) => new Promise((resolve, reject) => {
     usersToDelete,
   });
 
-  return Promise.all(usersToAdd
-      .map(user => addUserToGroup(user, group.name))
-      .concat(usersToDelete
-        .map(user => removeUserFromGroup(user, group.name)))
+  return Promise.all(
+      usersToAdd.map(user => addUserToGroup(user, group.name))
+      .concat(usersToDelete.map(user => removeUserFromGroup(user, group.name)))
   ).then(result => {
       log.info(result, 'Updating users-groups relations finished');
-
-      return attachGroupPolicy(group.name, group.policy)
-        .then(resolve)
-        .catch(reject);
+      return resolve(result);
     }).catch(error => {
-      log.error({ error }, 'Error while assignign user to group');
+      log.error({ error }, 'Error while assigning user to group');
       return reject(error);
     });
 });
@@ -117,21 +94,34 @@ const forgeNewGroup = (group, error) => new Promise((resolve, reject) => {
 });
 
 const update = json => new Promise((resolve, reject) => {
+  log.info({ newData: json}, 'Updating groups...');
+
   const promises = json.groups.map(group =>
     iam.getGroup({ GroupName: group.name }).promise().then(data => {
       log.info({ data }, 'Group info');
 
-      return reassignUsers(data, group).then();
+      return reassignUsers(data, group).then(resolve).catch(reject);
     }).catch(error => {
       log.warn({ error }, 'Error while updating group');
 
-      return forgeNewGroup(group, error);
+      return forgeNewGroup(group, error).then(resolve).catch(reject);
     })
   );
 
   return Promise.all(promises).then(resolve).catch(reject);
 });
 
+const updatePolicies = json => {
+  log.info({ newData: json}, 'Updating group policies...');
+
+  const attachPolicyRequests = json.groups.map(group =>
+    attachGroupPolicy(group.name, group.policy));
+
+  return Promise.all(attachPolicyRequests);
+};
+
 module.exports = {
   update,
+  updatePolicies,
+  removeUserFromGroup,
 };

@@ -5,47 +5,61 @@ const axios = require('axios');
 const bunyan = require('bunyan');
 const Promise = require('bluebird');
 
-const log = bunyan.createLogger({ name: 'aws-iam-manager' });
+const log = bunyan.createLogger({
+  name: 'aws-iam-manager',
+});
+
+const Elasticsearch = require('bunyan-elasticsearch');
+const esStream = new Elasticsearch({
+  indexPattern: '[logstash-]YYYY.MM.DD',
+  type: 'logs',
+  host: 'localhost:9200'
+});
+
 const users = require('./users');
 const groups = require('./groups');
-const polices = require('./polices');
+const policies = require('./polices');
+const sts = require('./sts');
 
-const getAuth = () =>
-  `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
+const getAuth = () => `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
 
-const getJson = url => new Promise((resolve, reject) => {
+async function getJson(url) {
   log.info({ url }, 'Downloading...');
 
-  axios.get(`${url}${getAuth()}`).then(payload => {
-    const data = new Buffer(payload.data.content, payload.data.encoding).toString('ascii');
+  const { data } = await axios.get(`${url}${getAuth()}`);
+  const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
+  return YAML.load(formattedData);
+}
 
-    log.info({ data, payload: payload.data }, 'Data from blob loaded.');
-    return resolve(YAML.load(data));
-  }).catch(reject);
-});
+async function processAccount(contentsUrl) {
+  log.info({ contentsUrl }, 'Processing account...');
 
-// TODO: Wrap in fancy loop/map (with concurrency = 1 for sequential processing) instead of repeating 4 times
-// TODO: Group in objects with blob URLs (inside axios.get) and promises (factory?)
-const processUsers = blobUrl => new Promise((resolve, reject) => {
-  getJson(blobUrl)
-    .then(users.update)
-    .then(resolve)
-    .catch(reject);
-});
+  try {
+    const { data } = await axios.get(contentsUrl);
+    const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
+    const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
+    const policiesBlobUrl = data.filter(f => f.name === 'policies.yml')[0].git_url;
 
-const processGroups = blobUrl => new Promise((resolve, reject) => {
-  getJson(blobUrl)
-    .then(groups.update)
-    .then(resolve)
-    .catch(reject);
-});
+    const usersData = await getJson(usersBlobUrl);
+    const groupsData = await getJson(groupsBlobUrl);
+    const policiesData = await getJson(policiesBlobUrl);
 
-const processPolices = blobUrl => new Promise((resolve, reject) => {
-  getJson(blobUrl)
-    .then(polices.update)
-    .then(resolve)
-    .catch(reject);
-});
+    log.info({
+      data,
+      usersData,
+      groupsData,
+      policiesData,
+    }, 'Blobs downloaded');
+
+    await users.update(usersData);
+    await groups.update(groupsData);
+    await policies.update(policiesData);
+    await groups.updatePolicies(groupsData);
+
+  } catch(err) {
+    console.log(err);
+  }
+};
 
 module.exports.handler = (event, context, callback) => {
   const returnError = error => {
@@ -63,24 +77,19 @@ module.exports.handler = (event, context, callback) => {
   const contentsUrl = `${githubMessage.repository.contents_url.replace('{+path}', '')}${getAuth()}`;
 
   axios.get(contentsUrl).then(payload => {
-    const usersBlobUrl = payload.data
-      .filter(file => file.name === 'users.yml')[0].git_url;
+    log.info({ data: payload.data }, 'Processing accounts...');
 
-    const groupsBlobUrl = payload.data
-      .filter(file => file.name === 'groups.yml')[0].git_url;
+    const promises = payload.data.map(accountFolder => ({
+      fn: processAccount,
+      url: accountFolder.url,
+    }));
 
-    const policesBlobUrl = payload.data
-      .filter(file => file.name === 'policies.yml')[0].git_url;
-
-    const promises = [{
-      fn: processUsers, url: usersBlobUrl,
-    }, {
-      fn: processGroups, url: groupsBlobUrl,
-    }, {
-      fn: processPolices, url: policesBlobUrl,
-    }];
-
-    return Promise.map(promises, promise => promise.fn(promise.url),
-      { concurrency: 1 }).then(returnSuccess).catch(returnError);
-  }).catch(returnError);
+    return Promise.map(promises, promise => promise.fn(promise.url), {
+        concurrency: 1
+      })
+      .then(returnSuccess)
+      .catch(returnError);
+  });
 };
+
+

@@ -17,10 +17,38 @@ const createPolicy = (PolicyName, PolicyDocument) => new Promise((resolve, rejec
   }).promise().then(resolve).catch(reject);
 });
 
-const removePolicy = PolicyArn => new Promise((resolve, reject) => {
+async function getPolicyArn(PolicyName) {
+  log.info({ PolicyName }, 'Getting policy...');
+
+  const payload = await iam.listPolicies({
+    PathPrefix: process.env.USERS_PATH,
+  }).promise();
+
+  return payload.Policies.filter(policy => policy.PolicyName === PolicyName);
+};
+
+async function detachFromAllEntities(PolicyArn) {
+  const entitiesWithAttachedPolicy = await iam.listEntitiesForPolicy({
+    PolicyArn,
+    PathPrefix: process.env.USERS_PATH,
+  }).promise();
+
+  log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Entities using policy');
+
+  const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
+    iam.detachGroupPolicy({
+      GroupName: group.GroupName,
+      PolicyArn
+    }).promise());
+
+  return await Promise.all(detachRequests);
+}
+
+async function removePolicy (PolicyArn) {
   log.info({ PolicyArn }, 'Deleting old policy...');
-  iam.deletePolicy({ PolicyArn }).promise().then(resolve).catch(reject);
-});
+  await detachFromAllEntities(PolicyArn);
+  return iam.deletePolicy({ PolicyArn }).promise();
+};
 
 const update = json => new Promise((resolve, reject) => {
   log.info({ newData: json }, 'Updating policies');
@@ -58,4 +86,5 @@ const update = json => new Promise((resolve, reject) => {
 
 module.exports = {
   update,
+  getPolicyArn,
 };
