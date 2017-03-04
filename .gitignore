@@ -4,4 +4,4 @@ node_modules
 *.log
 secrets.yml
 aws-permissions/
-lib/
+build/

@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "serverless deploy -v",
+    "deploy": "npm run build && serverless deploy -v",
     "logs": "serverless logs -f IAMManagerSNSHandler -t | bunyan",
-    "build": "babel *.js -d lib",
+    "build": "babel *.js -d build",
     "prepare-secrets": "cp secrets.yml.example secrets.yml",
     "invoke": "npm run build && serverless invoke local -f IAMManagerSNSHandler -p ./event.json | bunyan"
   },

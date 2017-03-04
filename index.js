@@ -33,9 +33,14 @@ async function getJson(url) {
 }
 
 async function processAccount(contentsUrl) {
-  log.info({ contentsUrl }, 'Processing account...');
+  const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];
+  log.info({ contentsUrl, accountName }, 'Processing account...');
 
   try {
+    const assumeResult = await sts.assumeRole(accountName);
+
+    log.info({ assumeResult }, 'Assume result');
+
     const { data } = await axios.get(contentsUrl);
     const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
     const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;

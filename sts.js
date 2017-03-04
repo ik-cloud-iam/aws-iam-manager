@@ -1,24 +1,34 @@
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
-const STS = new AWS.STS();
+const sts = new AWS.STS();
 const dynamodb = new AWS.DynamoDB();
+
+const log = bunyan.createLogger({ name: 'sts' });
 
 const dynamoDbQueryParams = (accountName) => ({
   TableName: 'aim_roles',
   Key: {
-    'account_name': accountName,
+    account_name: {
+      S: accountName
+    },
   },
 });
 
-const getAssumeRoleParamsFromDynamoDB = (accountName) =>
-  dynamodb.getItem(dynamoDbQueryParams(accountName)).promise();
+async function assumeRole(accountName) {
+  log.info({ accountName }, 'Getting RoleARN');
 
-const assumeRole = accountName => new Promise((resolve, reject) => {
-  getAssumeRoleParamsFromDynamoDB.then(data => {
+  const dynamoDbItem = await dynamodb.getItem(dynamoDbQueryParams(accountName)).promise();
+  const RoleArn = dynamoDbItem.Item.RoleArn.S;
 
-  }).catch(reject);
-});
+  log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
+
+  return await sts.assumeRole({
+    RoleArn,
+    RoleSessionName: 'AWS-IAM-Manager_Session',
+  }).promise();
+};
 
 module.exports = {
   assumeRole,
 };
+
