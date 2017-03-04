@@ -4,15 +4,13 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const _ = require('lodash');
-
 const groups = require('./groups');
 
 AWS.config.setPromisesDependency(Promise);
 
-const iam = new AWS.IAM();
 const log = bunyan.createLogger({ name: 'users' });
 
-const createUser = UserName => {
+const createUser = (UserName, iam) => {
   log.info({ UserName }, 'Creating new user...');
 
   return iam.createUser({
@@ -21,7 +19,7 @@ const createUser = UserName => {
   }).promise();
 };
 
-const deleteUser = UserName => new Promise((resolve, reject) => {
+const deleteUser = (UserName, iam) => new Promise((resolve, reject) => {
   log.info({ UserName }, 'Deleting old user...');
 
   iam.listGroupsForUser({ UserName }).promise().then(userGroups => {
@@ -30,7 +28,7 @@ const deleteUser = UserName => new Promise((resolve, reject) => {
     const groupRemovalPromises = userGroups.Groups.map(group => {
       log.info({ name: group.GroupName }, 'Removing user from group...');
 
-      return groups.removeUserFromGroup(UserName, group.GroupName);
+      return groups.removeUserFromGroup(UserName, group.GroupName, iam);
     });
 
     Promise.all(groupRemovalPromises).then(() =>
@@ -42,7 +40,7 @@ const deleteUser = UserName => new Promise((resolve, reject) => {
   });
 });
 
-const update = json => new Promise((resolve, reject) => {
+const update = (json, iam) => new Promise((resolve, reject) => {
   log.info({ newData: json }, 'Updating users');
 
   iam.listUsers({
@@ -61,10 +59,8 @@ const update = json => new Promise((resolve, reject) => {
       usersToDelete,
     });
 
-    return Promise.all(usersToAdd
-        .map(createUser)
-        .concat(usersToDelete
-          .map(deleteUser)))
+    return Promise.all(usersToAdd.map(user => createUser(user, iam))
+      .concat(usersToDelete.map(user => deleteUser(user, iam))))
       .then(result => {
         log.info('Updating users finished');
         return resolve(result);

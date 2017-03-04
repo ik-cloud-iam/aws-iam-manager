@@ -4,6 +4,10 @@ const YAML = require('js-yaml');
 const axios = require('axios');
 const bunyan = require('bunyan');
 const Promise = require('bluebird');
+const users = require('./users');
+const groups = require('./groups');
+const policies = require('./polices');
+const sts = require('./sts');
 
 const log = bunyan.createLogger({
   name: 'aws-iam-manager',
@@ -15,11 +19,6 @@ const esStream = new Elasticsearch({
   type: 'logs',
   host: 'localhost:9200'
 });
-
-const users = require('./users');
-const groups = require('./groups');
-const policies = require('./polices');
-const sts = require('./sts');
 
 const getAuth = () => process.env.GITHUB_ACCESS_TOKEN &&
   `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
@@ -37,9 +36,7 @@ async function processAccount(contentsUrl) {
   log.info({ contentsUrl, accountName }, 'Processing account...');
 
   try {
-    const assumeResult = await sts.assumeRole(accountName);
-
-    log.info({ assumeResult }, 'Assume result');
+    const assumedIam = await sts.assumeRole(accountName);
 
     const { data } = await axios.get(contentsUrl);
     const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
@@ -57,10 +54,10 @@ async function processAccount(contentsUrl) {
       policiesData,
     }, 'Blobs downloaded');
 
-    await users.update(usersData);
-    await policies.update(policiesData);
-    await groups.update(groupsData);
-    await groups.updatePolicies(groupsData);
+    await users.update(usersData, assumedIam);
+    await policies.update(policiesData, assumedIam);
+    await groups.update(groupsData, assumedIam);
+    await groups.updatePolicies(groupsData, assumedIam);
 
   } catch(err) {
     console.log(err);

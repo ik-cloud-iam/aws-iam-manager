@@ -4,15 +4,13 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const _ = require('lodash');
+const getPolicyArn = require('./polices').getPolicyArn;
 
 AWS.config.setPromisesDependency(Promise);
 
-const iam = new AWS.IAM();
 const log = bunyan.createLogger({ name: 'groups' });
 
-const getPolicyArn = require('./polices').getPolicyArn;
-
-const addUserToGroup = (UserName, GroupName) => new Promise((resolve, reject) => {
+const addUserToGroup = (UserName, GroupName, iam) => new Promise((resolve, reject) => {
   log.info({ UserName, GroupName }, 'Assigning user to group');
 
   iam.addUserToGroup({
@@ -21,14 +19,14 @@ const addUserToGroup = (UserName, GroupName) => new Promise((resolve, reject) =>
   }).promise().then(resolve).catch(reject);
 });
 
-const removeUserFromGroup = (UserName, GroupName) => new Promise((resolve, reject) => {
+const removeUserFromGroup = (UserName, GroupName, iam) => new Promise((resolve, reject) => {
   iam.removeUserFromGroup({
     UserName,
     GroupName
   }).promise().then(resolve).catch(reject);
 });
 
-const createGroup = GroupName => new Promise((resolve, reject) => {
+const createGroup = (GroupName, iam) => new Promise((resolve, reject) => {
   log.info({ GroupName }, 'Creating new group...');
   iam.createGroup({
     GroupName,
@@ -36,10 +34,10 @@ const createGroup = GroupName => new Promise((resolve, reject) => {
   }).promise().then(resolve).catch(reject);
 });
 
-async function attachGroupPolicy (GroupName, PolicyName) {
+async function attachGroupPolicy (GroupName, PolicyName, iam) {
   log.info({ GroupName, PolicyName }, 'Attaching policy to group');
 
-  const policies = await getPolicyArn(PolicyName);
+  const policies = await getPolicyArn(PolicyName, iam);
   if (policies.length === 0) {
     log.error({ PolicyName }, 'Requested policy not found!');
   }
@@ -53,7 +51,7 @@ async function attachGroupPolicy (GroupName, PolicyName) {
   }).promise();
 };
 
-const reassignUsers = (data, group) => new Promise((resolve, reject) => {
+const reassignUsers = (data, group, iam) => new Promise((resolve, reject) => {
   const oldGroupUsers = data.Users.map(u => u.UserName);
   const newGroupUsers = group.users;
 
@@ -68,8 +66,8 @@ const reassignUsers = (data, group) => new Promise((resolve, reject) => {
   });
 
   return Promise.all(
-      usersToAdd.map(user => addUserToGroup(user, group.name))
-      .concat(usersToDelete.map(user => removeUserFromGroup(user, group.name)))
+      usersToAdd.map(user => addUserToGroup(user, group.name, iam))
+      .concat(usersToDelete.map(user => removeUserFromGroup(user, group.name, iam)))
   ).then(result => {
       log.info(result, 'Updating users-groups relations finished');
       return resolve(result);
@@ -79,12 +77,12 @@ const reassignUsers = (data, group) => new Promise((resolve, reject) => {
     });
 });
 
-const forgeNewGroup = (group, error) => new Promise((resolve, reject) => {
+const forgeNewGroup = (group, error, iam) => new Promise((resolve, reject) => {
   if (error.code === 'NoSuchEntity') {
     log.info({ name: group.name }, 'Group not found, creating...');
 
-    return createGroup(group.name).then(() => {
-      reassignUsers({ Users: [] }, group)
+    return createGroup(group.name, iam).then(() => {
+      reassignUsers({ Users: [] }, group, iam)
         .then(resolve)
         .catch(reject);
     }).catch(reject);
@@ -93,29 +91,29 @@ const forgeNewGroup = (group, error) => new Promise((resolve, reject) => {
   return reject(error);
 });
 
-const update = json => new Promise((resolve, reject) => {
+const update = (json, iam) => new Promise((resolve, reject) => {
   log.info({ newData: json}, 'Updating groups...');
 
   const promises = json.groups.map(group =>
     iam.getGroup({ GroupName: group.name }).promise().then(data => {
       log.info({ data }, 'Group info');
 
-      return reassignUsers(data, group).then(resolve).catch(reject);
+      return reassignUsers(data, group, iam).then(resolve).catch(reject);
     }).catch(error => {
       log.warn({ error }, 'Error while updating group');
 
-      return forgeNewGroup(group, error).then(resolve).catch(reject);
+      return forgeNewGroup(group, error, iam).then(resolve).catch(reject);
     })
   );
 
   return Promise.all(promises).then(resolve).catch(reject);
 });
 
-const updatePolicies = json => {
+const updatePolicies = (json, iam) => {
   log.info({ newData: json}, 'Updating group policies...');
 
   const attachPolicyRequests = json.groups.map(group =>
-    attachGroupPolicy(group.name, group.policy));
+    attachGroupPolicy(group.name, group.policy, iam));
 
   return Promise.all(attachPolicyRequests);
 };

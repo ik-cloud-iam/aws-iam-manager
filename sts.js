@@ -22,10 +22,14 @@ async function assumeRole(accountName) {
 
   log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
 
-  return await sts.assumeRole({
+  const TemporaryCredentials = new AWS.TemporaryCredentials({
     RoleArn,
-    RoleSessionName: 'AWS-IAM-Manager_Session',
-  }).promise();
+  });
+
+  AWS.config.credentials = new AWS.EnvironmentCredentials('AWS');
+  AWS.config.credentials = TemporaryCredentials;
+
+  return new AWS.IAM();
 };
 
 module.exports = {

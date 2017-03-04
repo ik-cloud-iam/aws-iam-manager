@@ -4,10 +4,9 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 
-const iam = new AWS.IAM();
 const log = bunyan.createLogger({ name: 'polices' });
 
-const createPolicy = (PolicyName, PolicyDocument) => new Promise((resolve, reject) => {
+const createPolicy = (PolicyName, PolicyDocument, iam) => new Promise((resolve, reject) => {
   log.info({ PolicyName, PolicyDocument }, 'Creating new policy...');
 
   iam.createPolicy({
@@ -17,7 +16,7 @@ const createPolicy = (PolicyName, PolicyDocument) => new Promise((resolve, rejec
   }).promise().then(resolve).catch(reject);
 });
 
-async function getPolicyArn(PolicyName) {
+async function getPolicyArn(PolicyName, iam) {
   log.info({ PolicyName }, 'Getting policy...');
 
   const payload = await iam.listPolicies({
@@ -27,7 +26,7 @@ async function getPolicyArn(PolicyName) {
   return payload.Policies.filter(policy => policy.PolicyName === PolicyName);
 };
 
-async function detachFromAllEntities(PolicyArn) {
+async function detachFromAllEntities(PolicyArn, iam) {
   const entitiesWithAttachedPolicy = await iam.listEntitiesForPolicy({
     PolicyArn,
     PathPrefix: process.env.USERS_PATH,
@@ -44,13 +43,13 @@ async function detachFromAllEntities(PolicyArn) {
   return await Promise.all(detachRequests);
 }
 
-async function removePolicy (PolicyArn) {
+async function removePolicy (PolicyArn, iam) {
   log.info({ PolicyArn }, 'Deleting old policy...');
-  await detachFromAllEntities(PolicyArn);
+  await detachFromAllEntities(PolicyArn, iam);
   return iam.deletePolicy({ PolicyArn }).promise();
 };
 
-const update = json => new Promise((resolve, reject) => {
+const update = (json, iam) => new Promise((resolve, reject) => {
   log.info({ newData: json }, 'Updating policies');
 
   iam.listPolicies({
@@ -67,10 +66,10 @@ const update = json => new Promise((resolve, reject) => {
     // Because we have not power to get current policies document and compare them
     // We have to remove all policies and re-create them from scratch.
     // Policies are also immutable, it's possible to version them but AWS limits version count to 5.
-    Promise.all(data.Policies.map(policy => removePolicy(policy.Arn))).then(deleteResult => {
+    Promise.all(data.Policies.map(policy => removePolicy(policy.Arn, iam))).then(deleteResult => {
       log.info({ deleteResult }, 'Old policies removed, creating new...');
 
-      Promise.all(json.policies.map(policy => createPolicy(policy.name, JSON.stringify(policy.document))))
+      Promise.all(json.policies.map(policy => createPolicy(policy.name, JSON.stringify(policy.document), iam)))
         .then(createResult => {
           log.info({ createResult }, 'New policies created');
 
