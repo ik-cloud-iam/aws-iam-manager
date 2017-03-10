@@ -25,9 +25,8 @@ Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign
 `AIM` is capable of managing accounts with Cross-Account access. In order to do that we need to do three things:
 
 1. Establish a trust relationship between `Slave` account and `Master` Account (account where our Lambda is deployed). [Tutorial how to do that here](http://slides.com/rafalwilinski/deck)
-2. Create Policy document allowing our Lambda to assume role of other accounts IAM role.
-3. Update accounts configuration in DynamoDB table called `aim_roles`. 
-
+2. Create Policy document allowing our Lambda to assume role of other accounts IAM role. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-1)
+3. Update accounts configuration in DynamoDB table called `aim_roles`. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-2)
 
 
 ### Repository Structure
