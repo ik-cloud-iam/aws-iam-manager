@@ -1,32 +1,47 @@
 # aws-iam-manager
 
-Manage your IAM Users, Groups and Policies using Github Repository with simple AWS Lambda function based on-top Serverless framework.
+Manage multiple AWS Account IAM Users, Groups and Policies using Github Repository & Cross-Account access with simple AWS Lambda function based on-top Serverless framework.
 
 ### Overview
 
 ![Overview](overview.png)
 
-Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, attach them to specific groups with attached policies.
+Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign to specific groups with attached policies.
+
+### Prerequisities
+- Node.js (preferably LTS)
+- Serverless Framework installed globally
+- AWS IAM Access/Secret keys set in `~/.aws/credentials` to user with sufficient permissions
 
 ### Installation
 
-1. ```npm install -g serverless@1.3.0```
-2. Setup your AWS credentials in ```~/.aws/credentials```
-3. Open ```serverless.yml``` and choose region where you'd like to deploy
-4. Execute ```serverless deploy``` and wait for results.
-5. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
-6. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=permissions&policy=direct.githubhookuser.githubhookallowsnssubscriptionpolicy` and copy `Resource` value. It should something like this: `arn:aws:sns:us-east-1:YOUR_AWS_ACC_NUMBER:aws-iam-manager-dev-GithubNotifyTopic-xxxxx`.
-7. Go to `https://github.com/YOUR_NAME/REPO/settings/hooks/new?service=amazonsns` and fill form with data you retrieved in steps 5 & 6. Lastly, click `Add Service`.
-8. Now `aws-iam-manager` will continiously monitor your GitHub repo and reflect changes on AWS account.
+1. Execute ```serverless deploy``` and wait for results.
+2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
+3. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=permissions&policy=direct.githubhookuser.githubhookallowsnssubscriptionpolicy` and copy `Resource` value. It should look like something this: `arn:aws:sns:us-east-1:YOUR_AWS_ACC_NUMBER:aws-iam-manager-dev-GithubNotifyTopic-xxxxx`.
+4. Go to `https://github.com/YOUR_NAME/REPO/settings/hooks/new?service=amazonsns` and fill form with data you retrieved in steps 2 & 3. Lastly, click `Add Service`.
+5. Now `aws-iam-manager` will continiously monitor your GitHub repo and reflect changes on AWS accounts.
+
+### Setup
+`AIM` is capable of managing accounts with Cross-Account access. In order to do that we need to do three things:
+
+1. Establish a trust relationship between `Slave` account and `Master` Account (account where our Lambda is deployed). [Tutorial how to do that here](http://slides.com/rafalwilinski/deck)
+2. Create Policy document allowing our Lambda to assume role of other accounts IAM role. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-1)
+3. Update accounts configuration in DynamoDB table called `aim_roles`. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-2)
+
 
 ### Repository Structure
 ##### Files structure
 
 ```
 /repo_root
-├── users.yml
-├── groups.yml
-└── policies.yml
+├── account_one
+|     ├── users.yml
+|     ├── groups.yml
+|     └── policies.yml
+└── account_two
+      ├── users.yml
+      ├── groups.yml
+      └── policies.yml
 ```
 
 ##### Sample files
