@@ -16,7 +16,7 @@ You can find example repository using #aws-iam-manager here: [https://github.com
 
 ### Installation
 
-1. Execute ```serverless deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents will change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
+1. Execute ```serverless deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
 2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
 3. Navigate to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:  
 **Here is where we find SNS Topic Amazon Resource Name**
