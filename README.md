@@ -7,6 +7,7 @@ Manage multiple AWS Account IAM Users, Groups and Policies using Github Reposito
 ![Overview](overview.png)
 
 Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign to specific groups with attached policies.
+You can find example repository using #aws-iam-manager here: [https://github.com/RafalWilinski/aws-permissions](https://github.com/RafalWilinski/aws-permissions)
 
 ### Prerequisities
 - Node.js (preferably LTS)
@@ -15,11 +16,14 @@ Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign
 
 ### Installation
 
-1. Execute ```serverless deploy``` and wait for results.
-2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
-3. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/GithubHookUser?section=permissions&policy=direct.githubhookuser.githubhookallowsnssubscriptionpolicy` and copy `Resource` value. It should look like something this: `arn:aws:sns:us-east-1:YOUR_AWS_ACC_NUMBER:aws-iam-manager-dev-GithubNotifyTopic-xxxxx`.
+1. Execute ```serverless deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
+2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
+3. Navigate to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:  
+**Here is where we find SNS Topic Amazon Resource Name**
+![SNS Topic ARN](SNSTopic.png)
+It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerNotifyTopic`. Make sure you are in `us-east-1` region, as shown in the picture above.
 4. Go to `https://github.com/YOUR_NAME/REPO/settings/hooks/new?service=amazonsns` and fill form with data you retrieved in steps 2 & 3. Lastly, click `Add Service`.
-5. Now `aws-iam-manager` will continiously monitor your GitHub repo and reflect changes on AWS accounts.
+5. Now `aws-iam-manager` will continuously monitor your GitHub repo and reflect changes on AWS accounts.
 
 ### Setup
 `AIM` is capable of managing accounts with Cross-Account access. In order to do that we need to do three things:
