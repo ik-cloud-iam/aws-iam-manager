@@ -20,8 +20,11 @@ const esStream = new Elasticsearch({
   host: 'localhost:9200'
 });
 
-const getAuth = () => process.env.GITHUB_ACCESS_TOKEN &&
-  `?access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
+// TODO:
+// Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
+// Find a solution
+const getAuth = () => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
+  ? `?access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
 
 async function getJson(url) {
   log.info({ url }, 'Downloading...');
@@ -33,12 +36,20 @@ async function getJson(url) {
 
 async function processAccount(contentsUrl) {
   const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];
+
+  // Check if file has extension === is not a folder
+  if (accountName.includes('.')) {
+    log.info({ accountName }, 'Skipping... Probably not a directory');
+    return;
+  }
+
   log.info({ contentsUrl, accountName }, 'Processing account...');
 
   try {
     const assumedIam = await sts.assumeRole(accountName);
 
     const { data } = await axios.get(contentsUrl);
+    log.info({ data }, 'Contents data');
     const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
     const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
     const policiesBlobUrl = data.filter(f => f.name === 'policies.yml')[0].git_url;
@@ -60,7 +71,7 @@ async function processAccount(contentsUrl) {
     await groups.updatePolicies(groupsData, assumedIam);
 
   } catch(err) {
-    console.log(err);
+    log.error({ err, contentsUrl, accountName }, 'Error while processing account');
   }
 };
 
@@ -78,6 +89,8 @@ module.exports.handler = (event, context, callback) => {
   log.info(event, 'SNS event received');
   const githubMessage = JSON.parse(event.Records[0].Sns.Message);
   const contentsUrl = `${githubMessage.repository.contents_url.replace('{+path}', '')}${getAuth()}`;
+
+  log.info({ contentsUrl }, 'Getting repo contents...');
 
   axios.get(contentsUrl).then(payload => {
     log.info({ data: payload.data }, 'Processing accounts...');

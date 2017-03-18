@@ -18,16 +18,19 @@ async function assumeRole(accountName) {
   log.info({ accountName }, 'Getting RoleARN');
 
   const dynamoDbItem = await dynamodb.getItem(dynamoDbQueryParams(accountName)).promise();
-  const RoleArn = dynamoDbItem.Item.RoleArn.S;
+  if (dynamoDbItem && dynamoDbItem.Item) {
+    const RoleArn = dynamoDbItem.Item.RoleArn.S;
+    log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
 
-  log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
+    const TemporaryCredentials = new AWS.TemporaryCredentials({
+      RoleArn,
+    });
 
-  const TemporaryCredentials = new AWS.TemporaryCredentials({
-    RoleArn,
-  });
-
-  AWS.config.credentials = new AWS.EnvironmentCredentials('AWS');
-  AWS.config.credentials = TemporaryCredentials;
+    AWS.config.credentials = new AWS.EnvironmentCredentials('AWS');
+    AWS.config.credentials = TemporaryCredentials;
+  } else {
+    log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, using default credentials');
+  }
 
   return new AWS.IAM();
 };
