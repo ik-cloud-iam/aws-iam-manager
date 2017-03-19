@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "npm run build && serverless deploy -v",
+    "deploy": "npm run build && serverless deploy -v -r us-east-1",
     "logs": "serverless logs -f IAMManagerSNSHandler -t | bunyan",
     "build": "babel *.js -d build",
     "prepare-secrets": "cp secrets.yml.example secrets.yml",
-    "invoke": "npm run build && serverless invoke local -f IAMManagerSNSHandler -p ./event.json | bunyan"
+    "invoke": "npm run build && serverless invoke local -f IAMManagerSNSHandler -p ./event.json -v | bunyan"
   },
   "keywords": [
     "github",
@@ -23,6 +23,10 @@
   "devDependencies": {
     "aws-sdk": "^2.7.13",
     "babel-cli": "^6.23.0",
+    "babel-plugin-async-to-promises": "^1.0.5",
+    "babel-plugin-transform-async-generator-functions": "^6.22.0",
+    "babel-plugin-transform-es2015-destructuring": "^6.23.0",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
     "babel-preset-es2017": "^6.22.0",
     "eslint": "^3.12.2"
   },
@@ -30,8 +34,7 @@
     "axios": "^0.15.3",
     "bluebird": "^3.4.6",
     "bunyan": "^1.8.5",
-    "bunyan-elasticsearch": "^1.0.1",
     "js-yaml": "^3.7.0",
-    "lodash": "^4.17.2"
+    "lodash.difference": "^4.5.0"
   }
 }
