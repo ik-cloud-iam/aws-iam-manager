@@ -3,7 +3,7 @@
 const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
-const _ = require('lodash');
+const difference = require('lodash.difference');
 const getPolicyArn = require('./polices').getPolicyArn;
 
 AWS.config.setPromisesDependency(Promise);
@@ -55,8 +55,8 @@ const reassignUsers = (data, group, iam) => new Promise((resolve, reject) => {
   const oldGroupUsers = data.Users.map(u => u.UserName);
   const newGroupUsers = group.users;
 
-  const usersToAdd = _.difference(newGroupUsers, oldGroupUsers);
-  const usersToDelete = _.difference(oldGroupUsers, newGroupUsers);
+  const usersToAdd = difference(newGroupUsers, oldGroupUsers);
+  const usersToDelete = difference(oldGroupUsers, newGroupUsers);
 
   log.info({
     oldGroupUsers,

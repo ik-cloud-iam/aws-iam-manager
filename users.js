@@ -3,7 +3,7 @@
 const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
-const _ = require('lodash');
+const difference = require('lodash.difference');
 const groups = require('./groups');
 
 AWS.config.setPromisesDependency(Promise);
@@ -49,8 +49,8 @@ const update = (json, iam) => new Promise((resolve, reject) => {
     const newUsers = json.users;
     const oldUsers = data.Users.map(u => u.UserName);
 
-    const usersToAdd = _.difference(newUsers, oldUsers);
-    const usersToDelete = _.difference(oldUsers, newUsers);
+    const usersToAdd = difference(newUsers, oldUsers);
+    const usersToDelete = difference(oldUsers, newUsers);
 
     log.info({
       newUsers,

@@ -13,13 +13,6 @@ const log = bunyan.createLogger({
   name: 'aws-iam-manager',
 });
 
-const Elasticsearch = require('bunyan-elasticsearch');
-const esStream = new Elasticsearch({
-  indexPattern: '[logstash-]YYYY.MM.DD',
-  type: 'logs',
-  host: 'localhost:9200'
-});
-
 // TODO:
 // Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
 // Find a solution
@@ -31,7 +24,10 @@ async function getJson(url) {
 
   const { data } = await axios.get(`${url}${getAuth()}`);
   const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
-  return YAML.load(formattedData);
+
+  log.info({ formattedData, url }, 'Decoded blob');
+
+  return YAML.safeLoad(formattedData);
 }
 
 async function processAccount(contentsUrl) {
@@ -107,5 +103,3 @@ module.exports.handler = (event, context, callback) => {
       .catch(returnError);
   });
 };
-
-
