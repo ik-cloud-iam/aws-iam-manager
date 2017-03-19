@@ -26,9 +26,8 @@ async function getJson(url) {
   const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
 
   log.info({ formattedData, url }, 'Decoded blob');
-
   return YAML.safeLoad(formattedData);
-}
+};
 
 async function processAccount(contentsUrl) {
   const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];

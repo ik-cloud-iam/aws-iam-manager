@@ -19,6 +19,7 @@ provider:
         - iam:AddUserToGroup
         - iam:RemoveUserFromGroup
         - iam:ListPolicies
+        - iam:ListEntitiesForPolicy
         - iam:CreatePolicy
         - iam:DeletePolicy
         - iam:GetPolicy

@@ -10,15 +10,17 @@ Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign
 You can find example repository using #aws-iam-manager here: [https://github.com/RafalWilinski/aws-permissions](https://github.com/RafalWilinski/aws-permissions)
 
 ### Prerequisities
-- Node.js (preferably LTS)
-- Serverless Framework installed globally
+- Node.js (4.3 - same as Lambda runtime!)
+- Serverless Framework installed globally (preferably 1.9)
 - AWS IAM Access/Secret keys set in `~/.aws/credentials` to user with sufficient permissions
 
 ### Installation
 
+**To deploy properly working function use node 4.3.x, same as AWS Lambda latest runtime**
+
 1. Execute ```serverless deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
 2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
-3. Navigate to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:  
+3. Navigate to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:
 **Here is where we find SNS Topic Amazon Resource Name**
 ![SNS Topic ARN](SNSTopic.png)
 It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerNotifyTopic`. Make sure you are in `us-east-1` region, as shown in the picture above.
