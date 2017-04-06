@@ -4,18 +4,46 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
+const crypto = require('crypto');
 const groups = require('./groups');
 
 AWS.config.setPromisesDependency(Promise);
+const ses = new AWS.SES({ apiVersion: '2010-12-01' });
 
 const log = bunyan.createLogger({ name: 'users' });
 
-const createUser = (UserName, iam) => {
+async function createUser(UserName, iam) {
   log.info({ UserName }, 'Creating new user...');
+  const Password = crypto.randomBytes(48).toString('hex');
 
-  return iam.createUser({
+  await iam.createUser({
     UserName,
     Path: process.env.USERS_PATH,
+  }).promise();
+
+  await iam.createLoginProfile({
+    Password,
+    PasswordResetRequired: true,
+    UserName,
+  }).promise();
+
+  return await ses.sendEmail({
+    Source: process.env.MAIL_SENDER,
+    Destination: {
+      ToAddresses: [
+        `${UserName}@${process.env.EMAIL_DOMAIN}`,
+      ],
+    },
+    Message: {
+      Subject: {
+        Data: '[AWS-IAM-Manager] Your AWS account is ready.',
+      },
+      Body: {
+        Text: {
+          Data: `Your IAM User has been created.\n Credentials: ${Username} / ${Password}`,
+        },
+      },
+    },
   }).promise();
 };
 

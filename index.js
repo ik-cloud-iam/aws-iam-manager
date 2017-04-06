@@ -20,9 +20,10 @@ const getAuth = () => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
   ? `?access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
 
 async function getJson(url) {
-  log.info({ url }, 'Downloading...');
+  const authedUrl = `${url}${getAuth()}`;
+  log.info({ authedUrl }, 'Downloading...');
 
-  const { data } = await axios.get(`${url}${getAuth()}`);
+  const { data } = await axios.get(authedUrl);
   const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
 
   log.info({ formattedData, url }, 'Decoded blob');
@@ -66,7 +67,7 @@ async function processAccount(contentsUrl) {
     await groups.updatePolicies(groupsData, assumedIam);
 
   } catch(err) {
-    log.error({ err, contentsUrl, accountName }, 'Error while processing account');
+    log.error({ err: error.response.data, contentsUrl, accountName }, 'Error while processing account');
   }
 };
 
