@@ -10,6 +10,8 @@ provider:
   environment:
     GITHUB_ACCESS_TOKEN: ${file(./secrets.yml):GITHUB_ACCESS_TOKEN}
     USERS_PATH: /aim-managed/
+    MAIL_SENDER: rafal.wilinski@netguru.co
+    EMAIL_DOMAIN: netguru.co
   iamRoleStatements:
     - Effect: Allow
       Action:

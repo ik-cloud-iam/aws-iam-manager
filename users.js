@@ -12,9 +12,9 @@ const ses = new AWS.SES({ apiVersion: '2010-12-01' });
 
 const log = bunyan.createLogger({ name: 'users' });
 
-async function createUser(UserName, iam) {
+async function createUser(UserName, iam, accountName) {
   log.info({ UserName }, 'Creating new user...');
-  const Password = crypto.randomBytes(48).toString('hex');
+  const Password = crypto.randomBytes(16).toString('hex');
 
   await iam.createUser({
     UserName,
@@ -27,11 +27,19 @@ async function createUser(UserName, iam) {
     UserName,
   }).promise();
 
+  const recipent = `${UserName}@${process.env.EMAIL_DOMAIN}`;
+
+  log.info({
+    Source: process.env.MAIL_SENDER,
+    To: recipent,
+  },'User created, sending email');
+
   return await ses.sendEmail({
     Source: process.env.MAIL_SENDER,
     Destination: {
       ToAddresses: [
-        `${UserName}@${process.env.EMAIL_DOMAIN}`,
+        process.env.MAIL_SENDER,
+        recipent,
       ],
     },
     Message: {
@@ -40,7 +48,7 @@ async function createUser(UserName, iam) {
       },
       Body: {
         Text: {
-          Data: `Your IAM User has been created.\n Credentials: ${Username} / ${Password}`,
+          Data: `Your IAM User has been created.\n\n Account: ${accountName}\nCredentials: ${UserName} / ${Password}`,
         },
       },
     },
@@ -68,37 +76,34 @@ const deleteUser = (UserName, iam) => new Promise((resolve, reject) => {
   });
 });
 
-const update = (json, iam) => new Promise((resolve, reject) => {
+async function update(json, iam, accountName) {
   log.info({ newData: json }, 'Updating users');
 
-  iam.listUsers({
+  const data = await iam.listUsers({
     PathPrefix: process.env.USERS_PATH,
-  }).promise().then(data => {
-    const newUsers = json.users;
-    const oldUsers = data.Users.map(u => u.UserName);
+  }).promise();
 
-    const usersToAdd = difference(newUsers, oldUsers);
-    const usersToDelete = difference(oldUsers, newUsers);
+  const newUsers = json.users;
+  const oldUsers = data.Users.map(u => u.UserName);
 
-    log.info({
-      newUsers,
-      oldUsers,
-      usersToAdd,
-      usersToDelete,
-    });
+  const usersToAdd = difference(newUsers, oldUsers);
+  const usersToDelete = difference(oldUsers, newUsers);
 
-    return Promise.all(usersToAdd.map(user => createUser(user, iam))
-      .concat(usersToDelete.map(user => deleteUser(user, iam))))
-      .then(result => {
-        log.info('Updating users finished');
-        return resolve(result);
-      })
-      .catch(reject);
-  }).catch(error => {
-    log.error(error, 'Error while updating users');
-    return reject(error);
+  log.info({
+    newUsers,
+    oldUsers,
+    usersToAdd,
+    usersToDelete,
   });
-});
+
+  return Promise.all(usersToAdd.map(user => createUser(user, iam, accountName))
+    .concat(usersToDelete.map(user => deleteUser(user, iam))))
+    .then(result => {
+      log.info('Updating users finished');
+      return result;
+    })
+    .catch(err => { return Promise.reject(err); });
+}
 
 module.exports = {
   update,

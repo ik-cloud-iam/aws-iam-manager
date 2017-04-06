@@ -16,8 +16,8 @@ const log = bunyan.createLogger({
 // TODO:
 // Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
 // Find a solution
-const getAuth = () => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
-  ? `?access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
+const getAuth = (joinChar = '?') => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
+  ? `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
 
 async function getJson(url) {
   const authedUrl = `${url}${getAuth()}`;
@@ -32,6 +32,7 @@ async function getJson(url) {
 
 async function processAccount(contentsUrl) {
   const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];
+  const authedContentsUrl = `${contentsUrl}${getAuth('&')}`
 
   // Check if file has extension === is not a folder
   if (accountName.includes('.')) {
@@ -44,7 +45,7 @@ async function processAccount(contentsUrl) {
   try {
     const assumedIam = await sts.assumeRole(accountName);
 
-    const { data } = await axios.get(contentsUrl);
+    const { data } = await axios.get(authedContentsUrl);
     log.info({ data }, 'Contents data');
     const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
     const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
@@ -61,13 +62,17 @@ async function processAccount(contentsUrl) {
       policiesData,
     }, 'Blobs downloaded');
 
-    await users.update(usersData, assumedIam);
+    await users.update(usersData, assumedIam, accountName);
     await policies.update(policiesData, assumedIam);
     await groups.update(groupsData, assumedIam);
     await groups.updatePolicies(groupsData, assumedIam);
 
   } catch(err) {
-    log.error({ err: error.response.data, contentsUrl, accountName }, 'Error while processing account');
+    log.error({
+      err,
+      accountName,
+      authedContentsUrl,
+    }, 'Error while processing account');
   }
 };
 
