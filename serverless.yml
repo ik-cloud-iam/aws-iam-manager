@@ -6,6 +6,7 @@ provider:
   timeout: 30
   stackTags: aws-iam-manager
   region: us-east-1
+  profile: netguru_rnd
   deploymentBucket: aws-iam-manager-deploys
   environment:
     GITHUB_ACCESS_TOKEN: ${file(./secrets.yml):GITHUB_ACCESS_TOKEN}
@@ -18,6 +19,7 @@ provider:
         - iam:ListUsers
         - iam:DeleteUser
         - iam:CreateUser
+        - iam:CreateLoginProfile
         - iam:AddUserToGroup
         - iam:RemoveUserFromGroup
         - iam:ListPolicies
@@ -32,6 +34,7 @@ provider:
         - iam:DeleteGroupPolicy
         - iam:AttachGroupPolicy
         - iam:DetachGroupPolicy
+        - ses:SendEmail
         - dynamodb:GetItem
       Resource: "*"
 
