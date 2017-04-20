@@ -14,7 +14,7 @@ const log = bunyan.createLogger({ name: 'users' });
 
 async function createUser(UserName, iam, accountName) {
   log.info({ UserName }, 'Creating new user...');
-  const Password = crypto.randomBytes(16).toString('hex');
+  const Password = crypto.randomBytes(16).toString('base64');
 
   await iam.createUser({
     UserName,
