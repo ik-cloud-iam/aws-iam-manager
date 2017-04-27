@@ -9,28 +9,13 @@ const users = require('./users');
 const groups = require('./groups');
 const Policies = require('./policies');
 const STS = require('./sts');
+const utils = require('./utils');
 
 const log = bunyan.createLogger({ name: 'aws-iam-manager' });
 
-// Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
-// TODO: Find a solution
-const getAuth = (joinChar = '?') => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
-  ? `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
-
-async function getJson(url) {
-  const authedUrl = `${url}${getAuth()}`;
-  log.info({ authedUrl }, 'Downloading...');
-
-  const { data } = await axios.get(authedUrl);
-  const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
-
-  log.info({ formattedData, url }, 'Decoded blob');
-  return YAML.safeLoad(formattedData);
-};
-
 async function processAccount(contentsUrl, sts) {
   const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];
-  const authedContentsUrl = `${contentsUrl}${getAuth('&')}`
+  const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`
 
   // Check if file has extension === is not a folder
   if (accountName.includes('.')) {
@@ -51,9 +36,9 @@ async function processAccount(contentsUrl, sts) {
     const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
     const policiesBlobUrl = data.filter(f => f.name === 'policies.yml')[0].git_url;
 
-    const usersData = await getJson(usersBlobUrl);
-    const groupsData = await getJson(groupsBlobUrl);
-    const policiesData = await getJson(policiesBlobUrl);
+    const usersData = await utils.getJson(usersBlobUrl);
+    const groupsData = await utils.getJson(groupsBlobUrl);
+    const policiesData = await utils.getJson(policiesBlobUrl);
 
     log.info({
       data,
@@ -89,7 +74,7 @@ module.exports.handler = (event, context, callback) => {
 
   log.info(event, 'SNS event received');
   const githubMessage = JSON.parse(event.Records[0].Sns.Message);
-  const contentsUrl = `${githubMessage.repository.contents_url.replace('{+path}', '')}${getAuth()}`;
+  const contentsUrl = `${githubMessage.repository.contents_url.replace('{+path}', '')}${utils.getAuth()}`;
 
   log.info({ contentsUrl }, 'Getting repo contents...');
 
