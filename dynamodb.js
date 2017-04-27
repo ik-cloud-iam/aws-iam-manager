@@ -1,24 +1,25 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-const bunyan = require('bunyan');
-const dynamodb = new AWS.DynamoDB();
+class DynamoDB {
+  constructor(AWS, bunyan) {
+    this.dynamodb = new AWS.DynamoDB();
+    this.log = bunyan.createLogger({ name: 'dynamodb' });
+  }
 
-const log = bunyan.createLogger({ name: 'dynamodb' });
+  getDynamoDbQueryParams(accountName) {
+    return {
+      TableName: 'aim_roles',
+      Key: {
+        account_name: {
+          S: accountName,
+        },
+      },
+    };
+  }
 
-const dynamoDbQueryParams = (accountName) => ({
-  TableName: 'aim_roles',
-  Key: {
-    account_name: {
-      S: accountName
-    },
-  },
-});
-
-async function getItem(accountName) {
-  return await dynamodb.getItem(dynamoDbQueryParams(accountName)).promise();
+  async getItem(accountName) {
+    return await this.dynamodb.getItem(this.dynamoDbQueryParams(accountName)).promise();
+  }
 }
 
-module.exports = {
-  getItem,
-};
+module.exports = DynamoDB;
