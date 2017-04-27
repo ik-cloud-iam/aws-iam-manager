@@ -1,34 +1,32 @@
-const AWS = require('aws-sdk');
-const bunyan = require('bunyan');
-const sts = new AWS.STS();
-const DynamoDB = require('./dynamodb');
-
-const log = bunyan.createLogger({ name: 'sts' });
-
-async function assumeRole(accountName) {
-  log.info({ accountName }, 'Getting RoleARN');
-
-  const db = new DynamoDB(AWS, bunyan);
-  const dynamoDbItem = await db.getItem(accountName);
-
-  if (dynamoDbItem && dynamoDbItem.Item) {
-    const RoleArn = dynamoDbItem.Item.RoleArn.S;
-    log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
-
-    const TemporaryCredentials = new AWS.TemporaryCredentials({
-      RoleArn,
-    });
-
-    AWS.config.credentials = new AWS.EnvironmentCredentials('AWS');
-    AWS.config.credentials = TemporaryCredentials;
-  } else {
-    log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, using default credentials');
+class STS {
+  constructor(AWS, bunyan, dynamoDB) {
+    this.AWS = AWS;
+    this.sts = new AWS.STS();
+    this.log = bunyan.createLogger({ name: 'sts' });
+    this.dynamoDB = dynamoDB;
   }
 
-  return new AWS.IAM();
-};
+  async assumeRole(accountName) {
+    this.log.info({ accountName }, 'Getting RoleARN');
 
-module.exports = {
-  assumeRole,
-};
+    const dynamoDbItem = await this.dynamoDB.getItem(accountName);
 
+    if (dynamoDbItem && dynamoDbItem.Item) {
+      const RoleArn = dynamoDbItem.Item.RoleArn.S;
+      this.log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
+
+      const TemporaryCredentials = new this.AWS.TemporaryCredentials({
+        RoleArn,
+      });
+
+      this.AWS.config.credentials = new this.AWS.EnvironmentCredentials('AWS');
+      this.AWS.config.credentials = TemporaryCredentials;
+    } else {
+      this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, using default credentials');
+    }
+
+    return new this.AWS.IAM();
+  };
+}
+
+module.exports = STS;
