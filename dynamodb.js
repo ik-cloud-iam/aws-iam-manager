@@ -18,7 +18,7 @@ class DynamoDB {
   }
 
   async getItem(accountName) {
-    return await this.dynamodb.getItem(this.dynamoDbQueryParams(accountName)).promise();
+    return this.dynamodb.getItem(this.getDynamoDbQueryParams(accountName)).promise();
   }
 }
 

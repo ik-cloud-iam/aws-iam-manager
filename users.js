@@ -6,7 +6,7 @@ const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
 const groups = require('./groups');
-const ses = require('./ses');
+const SES = require('./ses');
 
 AWS.config.setPromisesDependency(Promise);
 
@@ -38,6 +38,8 @@ async function createUser(UserName, iam, accountName) {
     UserName,
     Path: process.env.USERS_PATH,
   }).promise();
+
+  const ses = new SES(AWS, bunyan);
 
   // If UserName ends with keys we want to only create programatic access
   if (UserName.includes('_keys')) {

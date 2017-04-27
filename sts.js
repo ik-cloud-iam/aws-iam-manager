@@ -10,6 +10,7 @@ async function assumeRole(accountName) {
 
   const db = new DynamoDB(AWS, bunyan);
   const dynamoDbItem = await db.getItem(accountName);
+
   if (dynamoDbItem && dynamoDbItem.Item) {
     const RoleArn = dynamoDbItem.Item.RoleArn.S;
     log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
