@@ -13,9 +13,8 @@ const log = bunyan.createLogger({
   name: 'aws-iam-manager',
 });
 
-// TODO:
 // Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
-// Find a solution
+// TODO: Find a solution
 const getAuth = (joinChar = '?') => process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')
   ? `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}` : '';
 
@@ -47,6 +46,7 @@ async function processAccount(contentsUrl) {
 
     const { data } = await axios.get(authedContentsUrl);
     log.info({ data }, 'Contents data');
+
     const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
     const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
     const policiesBlobUrl = data.filter(f => f.name === 'policies.yml')[0].git_url;
