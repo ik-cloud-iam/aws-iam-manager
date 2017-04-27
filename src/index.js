@@ -7,8 +7,8 @@ const bunyan = require('bunyan');
 const Promise = require('bluebird');
 const users = require('./users');
 const groups = require('./groups');
-const policies = require('./polices');
-const sts = require('./sts');
+const Policies = require('./polices');
+const STS = require('./sts');
 
 const log = bunyan.createLogger({ name: 'aws-iam-manager' });
 
@@ -42,6 +42,7 @@ async function processAccount(contentsUrl, sts) {
 
   try {
     const assumedIam = await sts.assumeRole(accountName);
+    const policies = new Policies(assumedIam, bunyan);
 
     const { data } = await axios.get(authedContentsUrl);
     log.info({ data }, 'Contents data');
