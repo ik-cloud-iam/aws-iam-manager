@@ -44,7 +44,7 @@ package:
     - node_modules/babel-cli/**
     - node_modules/eslint/**
     - node_modules/babel-*/**
-    - *.png
+    - '*.png'
 
 region: us-east-1
 
