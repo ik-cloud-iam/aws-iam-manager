@@ -4,64 +4,63 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 
-const log = bunyan.createLogger({ name: 'polices' });
+class Polices {
+  constructor(iam, bunyan) {
+    this.iam = iam;
+    this.log = bunyan.createLogger({ name: 'polices' });
+  }
 
-const createPolicy = (PolicyName, PolicyDocument, iam) => new Promise((resolve, reject) => {
-  log.info({ PolicyName, PolicyDocument }, 'Creating new policy...');
+  async createPolicy(PolicyName, PolicyDocument) {
+    this.log.info({ PolicyName, PolicyDocument }, 'Creating new policy...');
 
-  iam.createPolicy({
-    PolicyName,
-    PolicyDocument,
-    Path: process.env.USERS_PATH,
-  }).promise().then(resolve).catch(reject);
-});
+    return await this.iam.createPolicy({
+      PolicyName,
+      PolicyDocument,
+      Path: process.env.USERS_PATH,
+    }).promise();
+  }
 
-async function getPolicyArn(PolicyName, iam) {
-  log.info({ PolicyName }, 'Getting policy...');
+  async getPolicyArn(PolicyName) {
+    this.log.info({ PolicyName }, 'Getting policy...');
 
-  const payload = await iam.listPolicies({
-    PathPrefix: process.env.USERS_PATH,
-  }).promise();
+    const payload = await this.iam.listPolicies({
+      PathPrefix: process.env.USERS_PATH,
+    }).promise();
 
-  return payload.Policies.filter(policy => policy.PolicyName === PolicyName);
-};
+    return payload.Policies.filter(policy => policy.PolicyName === PolicyName);
+  }
 
-async function detachFromAllEntities(PolicyArn, iam) {
-  const entitiesWithAttachedPolicy = await iam.listEntitiesForPolicy({
-    PolicyArn,
-    PathPrefix: process.env.USERS_PATH,
-  }).promise();
+  async detachFromAllEntities(PolicyArn) {
+    const entitiesWithAttachedPolicy = await this.iam.listEntitiesForPolicy({
+      PolicyArn,
+      PathPrefix: process.env.USERS_PATH,
+    }).promise();
 
-  const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
-    iam.detachGroupPolicy({
-      GroupName: group.GroupName,
-      PolicyArn
-    }).promise());
+    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
+      this.iam.detachGroupPolicy({
+        GroupName: group.GroupName,
+        PolicyArn
+      }).promise());
 
-  log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
+    this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
-  return await Promise.all(detachRequests);
-}
+    return await Promise.all(detachRequests);
+  }
 
-async function removePolicy (PolicyArn, iam) {
-  log.info({ PolicyArn }, 'Deleting old policy...');
-  await detachFromAllEntities(PolicyArn, iam);
-  return iam.deletePolicy({ PolicyArn }).promise();
-};
+  async removePolicy (PolicyArn) {
+    log.info({ PolicyArn }, 'Deleting old policy...');
+    await detachFromAllEntities(PolicyArn);
+    return this.iam.deletePolicy({ PolicyArn }).promise();
+  };
 
-const update = (json, iam) => new Promise((resolve, reject) => {
-  log.info({ newData: json }, 'Updating policies');
+  async update(json, iam) {
+    this.log.info({ newData: json }, 'Updating policies');
 
-  iam.listPolicies({
-    PathPrefix: process.env.USERS_PATH,
-  }).promise().then(data => {
-    log.info(data, 'Old Policies');
+    const data = await iam.listPolicies({
+      PathPrefix: process.env.USERS_PATH,
+    }).promise();
 
-    const rejectError = error => {
-      log.error({ error }, 'Error while re-creating policies');
-
-      return reject(error);
-    };
+    log.info(data, 'Old Policies list');
 
     // Because we have not power to get current policies document and compare them
     // We have to remove all policies and re-create them from scratch.
@@ -74,16 +73,9 @@ const update = (json, iam) => new Promise((resolve, reject) => {
           log.info({ createResult }, 'New policies created');
 
           return resolve({ createResult, deleteResult });
-      }).catch(rejectError);
-    }).catch(rejectError);
+      });
+    });
+  }
+}
 
-  }).catch(error => {
-    log.error(error, 'Error while updating policies');
-    return reject(error);
-  });
-});
-
-module.exports = {
-  update,
-  getPolicyArn,
-};
+module.exports = Polices;
