@@ -1,23 +1,14 @@
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const sts = new AWS.STS();
-const dynamodb = new AWS.DynamoDB();
+const dynamodb = require('./dynamodb');
 
 const log = bunyan.createLogger({ name: 'sts' });
-
-const dynamoDbQueryParams = (accountName) => ({
-  TableName: 'aim_roles',
-  Key: {
-    account_name: {
-      S: accountName
-    },
-  },
-});
 
 async function assumeRole(accountName) {
   log.info({ accountName }, 'Getting RoleARN');
 
-  const dynamoDbItem = await dynamodb.getItem(dynamoDbQueryParams(accountName)).promise();
+  const dynamoDbItem = await dynamodb.getItem(accountName);
   if (dynamoDbItem && dynamoDbItem.Item) {
     const RoleArn = dynamoDbItem.Item.RoleArn.S;
     log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
