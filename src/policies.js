@@ -1,7 +1,7 @@
-class Polices {
+class Policies {
   constructor(iam, bunyan) {
     this.iam = iam;
-    this.log = bunyan.createLogger({ name: 'polices' });
+    this.log = bunyan.createLogger({ name: 'policies' });
   }
 
   async createPolicy(PolicyName, PolicyDocument) {
@@ -72,4 +72,4 @@ class Polices {
   }
 }
 
-module.exports = Polices;
+module.exports = Policies;

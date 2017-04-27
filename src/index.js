@@ -7,7 +7,7 @@ const bunyan = require('bunyan');
 const Promise = require('bluebird');
 const users = require('./users');
 const groups = require('./groups');
-const Policies = require('./polices');
+const Policies = require('./policies');
 const STS = require('./sts');
 
 const log = bunyan.createLogger({ name: 'aws-iam-manager' });
