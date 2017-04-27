@@ -1,5 +1,6 @@
 'use strict';
 
+const AWS = require('aws-sdk');
 const YAML = require('js-yaml');
 const axios = require('axios');
 const bunyan = require('bunyan');
@@ -9,9 +10,7 @@ const groups = require('./groups');
 const policies = require('./polices');
 const sts = require('./sts');
 
-const log = bunyan.createLogger({
-  name: 'aws-iam-manager',
-});
+const log = bunyan.createLogger({ name: 'aws-iam-manager' });
 
 // Serverless Framework always returns something under `process.env.GITHUB_ACCESS_TOKEN`, probably object
 // TODO: Find a solution
@@ -29,7 +28,7 @@ async function getJson(url) {
   return YAML.safeLoad(formattedData);
 };
 
-async function processAccount(contentsUrl) {
+async function processAccount(contentsUrl, sts) {
   const accountName = contentsUrl.split('/').slice(-1)[0].split('?')[0];
   const authedContentsUrl = `${contentsUrl}${getAuth('&')}`
 
@@ -93,7 +92,9 @@ module.exports.handler = (event, context, callback) => {
 
   log.info({ contentsUrl }, 'Getting repo contents...');
 
-  axios.get(contentsUrl).then(payload => {
+  const sts = new STS(AWS, bunyan, new AWS.DynamoDB());
+
+  axios.get(contentsUrl).then((payload) => {
     log.info({ data: payload.data }, 'Processing accounts...');
 
     const promises = payload.data.map(accountFolder => ({
@@ -101,10 +102,12 @@ module.exports.handler = (event, context, callback) => {
       url: accountFolder.url,
     }));
 
-    return Promise.map(promises, promise => promise.fn(promise.url), {
+    return Promise.map(promises, promise => promise.fn(promise.url, sts), {
         concurrency: 1
       })
       .then(returnSuccess)
       .catch(returnError);
+  }).catch((err) => {
+    returnError(err);
   });
 };
