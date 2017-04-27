@@ -6,53 +6,47 @@ const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
 const groups = require('./groups');
+const ses = require('./ses');
 
 AWS.config.setPromisesDependency(Promise);
-const ses = new AWS.SES({ apiVersion: '2010-12-01' });
 
 const log = bunyan.createLogger({ name: 'users' });
 
-async function createUser(UserName, iam, accountName) {
-  log.info({ UserName }, 'Creating new user...');
+async function generateUserLoginProfile(UserName) {
   const Password = crypto.randomBytes(16).toString('base64');
-
-  await iam.createUser({
-    UserName,
-    Path: process.env.USERS_PATH,
-  }).promise();
-
   await iam.createLoginProfile({
     Password,
     PasswordResetRequired: true,
     UserName,
   }).promise();
 
-  const recipent = `${UserName}@${process.env.EMAIL_DOMAIN}`;
+  return Password;
+}
 
-  log.info({
-    Source: process.env.MAIL_SENDER,
-    To: recipent,
-  },'User created, sending email');
-
-  return await ses.sendEmail({
-    Source: process.env.MAIL_SENDER,
-    Destination: {
-      ToAddresses: [
-        process.env.MAIL_SENDER,
-        recipent,
-      ],
-    },
-    Message: {
-      Subject: {
-        Data: '[AWS-IAM-Manager] Your AWS account is ready.',
-      },
-      Body: {
-        Text: {
-          Data: `Your IAM User has been created.\n\n Account: ${accountName}\nCredentials: ${UserName} / ${Password}`,
-        },
-      },
-    },
+async function generateProgrammaticAccessKeys(UserName) {
+  const data = await iam.createAccessKey({
+    UserName,
   }).promise();
+
+  return data.AccessKey;
+}
+
+async function createUser(UserName, iam, accountName) {
+  log.info({ UserName }, 'Creating new user...');
+
+  await iam.createUser({
+    UserName,
+    Path: process.env.USERS_PATH,
+  }).promise();
+
+  // If UserName ends with keys we want to only create programatic access
+  if (UserName.includes('_keys')) {
+    const credentials = await generateProgrammaticAccessKeys(UserName);
+    return await ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
+  } else {
+    const password = await generateUserLoginProfile(Username);
+    return await ses.sendUserCredentialsEmail(UserName, password, accountName);
+  }
 };
 
 const deleteUser = (UserName, iam) => new Promise((resolve, reject) => {
