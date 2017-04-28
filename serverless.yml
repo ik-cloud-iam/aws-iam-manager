@@ -50,7 +50,7 @@ region: us-east-1
 
 functions:
   IAMManagerSNSHandler:
-    handler: build/index.handler
+    handler: build/src/index.handler
     events:
       - sns:
           topicName: IAMManagerNotifyTopic

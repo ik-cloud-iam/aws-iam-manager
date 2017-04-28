@@ -9,7 +9,7 @@
     "logs": "serverless logs -f IAMManagerSNSHandler -t | bunyan",
     "build": "babel src/*.js -d build",
     "prepare-secrets": "cp secrets.yml.example secrets.yml",
-    "invoke": "npm run build && serverless invoke local -f IAMManagerSNSHandler -p ./event.json -v | bunyan"
+    "invoke": "npm run build && serverless invoke local -f IAMManagerSNSHandler -p ./event.json -v -r us-east-1 | bunyan"
   },
   "keywords": [
     "github",

@@ -22,7 +22,7 @@ class STS {
       this.AWS.config.credentials = new this.AWS.EnvironmentCredentials('AWS');
       this.AWS.config.credentials = TemporaryCredentials;
     } else {
-      this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, using default credentials');
+      this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, skipping account...');
     }
 
     return new this.AWS.IAM();

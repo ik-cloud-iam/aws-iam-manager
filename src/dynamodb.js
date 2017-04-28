@@ -1,8 +1,9 @@
 'use strict';
+const bunyan = require('bunyan');
 
 class DynamoDB {
-  constructor(AWS, bunyan) {
-    this.dynamodb = new AWS.DynamoDB();
+  constructor(dynamoDB) {
+    this.dynamodb = dynamoDB;
     this.log = bunyan.createLogger({ name: 'dynamodb' });
   }
 
@@ -18,7 +19,7 @@ class DynamoDB {
   }
 
   async getItem(accountName) {
-    return this.dynamodb.getItem(this.getDynamoDbQueryParams(accountName)).promise();
+    return await this.dynamodb.getItem(this.getDynamoDbQueryParams(accountName)).promise();
   }
 }
 

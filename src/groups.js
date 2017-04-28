@@ -4,7 +4,7 @@ const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
-const getPolicyArn = require('./polices').getPolicyArn;
+const Policies = require('./policies');
 
 AWS.config.setPromisesDependency(Promise);
 
@@ -37,7 +37,7 @@ const createGroup = (GroupName, iam) => new Promise((resolve, reject) => {
 async function attachGroupPolicy (GroupName, PolicyName, iam) {
   log.info({ GroupName, PolicyName }, 'Attaching policy to group');
 
-  const policies = await getPolicyArn(PolicyName, iam);
+  const policies = await new Policies().getPolicyArn(PolicyName, iam);
   if (policies.length === 0) {
     log.error({ PolicyName }, 'Requested policy not found!');
   }

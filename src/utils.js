@@ -1,3 +1,6 @@
+const axios = require('axios');
+const YAML = require('js-yaml');
+
 const getAuth = (joinChar = '?') => {
   if (process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')) {
     return `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
@@ -8,12 +11,9 @@ const getAuth = (joinChar = '?') => {
 
 async function getJson(url) {
   const authedUrl = `${url}${getAuth()}`;
-  log.info({ authedUrl }, 'Downloading...');
-
   const { data } = await axios.get(authedUrl);
   const formattedData = new Buffer(data.content, data.encoding).toString('ascii');
 
-  log.info({ formattedData, url }, 'Decoded blob');
   return YAML.safeLoad(formattedData);
 };
 
