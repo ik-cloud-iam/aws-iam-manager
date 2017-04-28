@@ -43,7 +43,7 @@ class Policies {
 
   async removePolicy (PolicyArn) {
     this.log.info({ PolicyArn }, 'Deleting old policy...');
-    await detachFromAllEntities(PolicyArn);
+    await this.detachFromAllEntities(PolicyArn);
     return this.iam.deletePolicy({ PolicyArn }).promise();
   };
 
@@ -62,7 +62,10 @@ class Policies {
     Promise.all(data.Policies.map(policy => this.removePolicy(policy.Arn))).then(deleteResult => {
       this.log.info({ deleteResult }, 'Old policies removed, creating new...');
 
-      Promise.all(json.policies.map(policy => createPolicy(policy.name, JSON.stringify(policy.document))))
+      Promise.all(
+        json.policies
+          .map(policy => this.createPolicy(policy.name, JSON.stringify(policy.document)))
+      )
         .then(createResult => {
           this.log.info({ createResult }, 'New policies created');
 
