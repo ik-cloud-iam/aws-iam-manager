@@ -11,8 +11,9 @@ const SES = require('./ses');
 AWS.config.setPromisesDependency(Promise);
 
 class Users {
-  constructor(iam) {
+  constructor(iam, groups) {
     this.iam = iam;
+    this.groups = groups;
     this.ses = new SES(AWS);
     this.log = bunyan.createLogger({name: 'users'});
   }
@@ -65,7 +66,7 @@ class Users {
         const groupRemovalPromises = userGroups.Groups.map(group => {
           this.log.info({name: group.GroupName}, 'Removing user from group...');
 
-          return groups.removeUserFromGroup(UserName, group.GroupName, iam);
+          return this.groups.removeUserFromGroup(UserName, group.GroupName, iam);
         });
 
         Promise.all(groupRemovalPromises).then(() =>

@@ -5,7 +5,7 @@ const axios = require('axios');
 const bunyan = require('bunyan');
 const Promise = require('bluebird');
 const Users = require('./users');
-const groups = require('./groups');
+const Groups = require('./groups');
 const Policies = require('./policies');
 const STS = require('./sts');
 const utils = require('./utils');
@@ -59,7 +59,8 @@ async function processAccount(data) {
   try {
     const assumedIam = await sts.assumeRole(accountName);
     const policies = new Policies(assumedIam);
-    const users = new Users(assumedIam);
+    const groups = new Groups(assumedIam, policies);
+    const users = new Users(assumedIam, groups);
 
     await users.update(usersData, assumedIam, accountName);
     await policies.update(policiesData, assumedIam);
