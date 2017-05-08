@@ -1,7 +1,7 @@
 const axios = require('axios');
 const YAML = require('js-yaml');
 
-function getAuth(joinChar = '?') => {
+function getAuth(joinChar = '?') {
   if (process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')) {
     return `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
   }
