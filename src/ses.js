@@ -1,3 +1,5 @@
+'use strict';
+
 const bunyan = require('bunyan');
 
 class SES {
@@ -6,10 +8,10 @@ class SES {
     this.log = bunyan.createLogger({ name: 'ses' });
   }
 
-  async sendUserCredentialsEmail(UserName, Password, accountName) {
+  async sendUserCredentialsEmail(username, password, accountName) {
     const recipent = `${UserName}@${process.env.EMAIL_DOMAIN}`;
     const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
-    const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nCredentials: ${UserName} / ${Password}`;
+    const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nCredentials: ${username} / ${password}`;
 
     this.log.info({
       Source: process.env.MAIL_SENDER,
@@ -36,6 +38,10 @@ class SES {
       },
     }).promise();
   }
-};
+
+  async sendProgrammaticAccessKeys(username, credentials, accountName) {
+    //TODO: Implement
+  }
+}
 
 module.exports = SES;

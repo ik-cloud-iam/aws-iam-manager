@@ -1,3 +1,5 @@
+'use strict';
+
 const bunyan = require('bunyan');
 
 class Policies {

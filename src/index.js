@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 const axios = require('axios');
 const bunyan = require('bunyan');
 const Promise = require('bluebird');
-const users = require('./users');
+const Users = require('./users');
 const groups = require('./groups');
 const Policies = require('./policies');
 const STS = require('./sts');
@@ -59,6 +59,7 @@ async function processAccount(data) {
   try {
     const assumedIam = await sts.assumeRole(accountName);
     const policies = new Policies(assumedIam);
+    const users = new Users(assumedIam);
 
     await users.update(usersData, assumedIam, accountName);
     await policies.update(policiesData, assumedIam);
