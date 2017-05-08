@@ -14,6 +14,13 @@ const DynamoDB = require('./dynamodb');
 const log = bunyan.createLogger({ name: 'index' });
 AWS.config.update({ region:'us-east-1' });
 
+function getProcessableAccountNames(payload) {
+  return payload.data.map(accountData => ({
+    url: accountData.url,
+    name: accountData.url.split('/').slice(-1)[0].split('?')[0],
+  })).filter(account => !account.name.includes('.'));
+}
+
 async function downloadAccountData(contentsUrl, accountName, sts) {
   const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`
 
@@ -77,10 +84,7 @@ module.exports.handler = (event, context, callback) => {
   const sts = new STS(AWS, bunyan, dynamoDb);
 
   axios.get(contentsUrl).then((payload) => {
-    const accounts = payload.data.map(accountData => ({
-      url: accountData.url,
-      name: accountData.url.split('/').slice(-1)[0].split('?')[0],
-    })).filter(account => !account.name.includes('.'));
+    const accounts = getProcessableAccountNames(payload);
 
     log.info({ accounts }, 'Processing accounts...');
 
