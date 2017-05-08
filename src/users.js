@@ -12,7 +12,7 @@ AWS.config.setPromisesDependency(Promise);
 
 const log = bunyan.createLogger({ name: 'users' });
 
-async function generateUserLoginProfile(UserName) {
+async function generateUserLoginProfile(UserName, iam) {
   const Password = crypto.randomBytes(16).toString('base64');
   await iam.createLoginProfile({
     Password,
@@ -23,7 +23,7 @@ async function generateUserLoginProfile(UserName) {
   return Password;
 }
 
-async function generateProgrammaticAccessKeys(UserName) {
+async function generateProgrammaticAccessKeys(UserName, iam) {
   const data = await iam.createAccessKey({
     UserName,
   }).promise();
@@ -43,13 +43,13 @@ async function createUser(UserName, iam, accountName) {
 
   // If UserName ends with keys we want to only create programatic access
   if (UserName.includes('_keys')) {
-    const credentials = await generateProgrammaticAccessKeys(UserName);
+    const credentials = await generateProgrammaticAccessKeys(UserName, iam);
     return await ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
   } else {
-    const password = await generateUserLoginProfile(Username);
+    const password = await generateUserLoginProfile(Username, iam);
     return await ses.sendUserCredentialsEmail(UserName, password, accountName);
   }
-};
+}
 
 const deleteUser = (UserName, iam) => new Promise((resolve, reject) => {
   log.info({ UserName }, 'Deleting old user...');
@@ -66,10 +66,7 @@ const deleteUser = (UserName, iam) => new Promise((resolve, reject) => {
     Promise.all(groupRemovalPromises).then(() =>
       iam.deleteUser({ UserName }).promise().then(resolve).catch(reject)
     ).catch(reject);
-
-  }).catch(error => {
-    reject();
-  });
+  }).catch(error => reject(error));
 });
 
 async function update(json, iam, accountName) {

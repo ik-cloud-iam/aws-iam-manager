@@ -22,7 +22,7 @@ function getProcessableAccountNames(payload) {
 }
 
 async function downloadAccountData(contentsUrl, accountName, sts) {
-  const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`
+  const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`;
 
   const { data } = await axios.get(authedContentsUrl);
   const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
@@ -58,7 +58,7 @@ async function processAccount(data) {
 
   try {
     const assumedIam = await sts.assumeRole(accountName);
-    const policies = new Policies(assumedIam, bunyan);
+    const policies = new Policies(assumedIam);
 
     await users.update(usersData, assumedIam, accountName);
     await policies.update(policiesData, assumedIam);
@@ -71,7 +71,7 @@ async function processAccount(data) {
       accountName,
     }, 'Error while processing account');
   }
-};
+}
 
 module.exports.handler = (event, context, callback) => {
   log.info(event, 'SNS event received');
@@ -81,7 +81,7 @@ module.exports.handler = (event, context, callback) => {
   log.info({ contentsUrl }, 'Getting repo contents...');
 
   const dynamoDb = new DynamoDB(new AWS.DynamoDB());
-  const sts = new STS(AWS, bunyan, dynamoDb);
+  const sts = new STS(AWS, dynamoDb);
 
   axios.get(contentsUrl).then((payload) => {
     const accounts = getProcessableAccountNames(payload);

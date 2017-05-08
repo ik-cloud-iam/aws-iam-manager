@@ -1,5 +1,7 @@
+const bunyan = require('bunyan');
+
 class Policies {
-  constructor(iam, bunyan) {
+  constructor(iam) {
     this.iam = iam;
     this.log = bunyan.createLogger({ name: 'policies' });
   }
@@ -69,7 +71,7 @@ class Policies {
         .then(createResult => {
           this.log.info({ createResult }, 'New policies created');
 
-          return resolve({ createResult, deleteResult });
+          return { createResult, deleteResult };
       });
     });
   }

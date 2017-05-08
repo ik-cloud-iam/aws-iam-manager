@@ -1,5 +1,7 @@
+const bunyan = require('bunyan');
+
 class STS {
-  constructor(AWS, bunyan, dynamoDB) {
+  constructor(AWS, dynamoDB) {
     this.AWS = AWS;
     this.sts = new AWS.STS();
     this.log = bunyan.createLogger({ name: 'sts' });
@@ -23,6 +25,7 @@ class STS {
       this.AWS.config.credentials = TemporaryCredentials;
     } else {
       this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, skipping account...');
+      return Promise.reject();
     }
 
     return new this.AWS.IAM();

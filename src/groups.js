@@ -49,7 +49,7 @@ async function attachGroupPolicy (GroupName, PolicyName, iam) {
     GroupName,
     PolicyArn,
   }).promise();
-};
+}
 
 const reassignUsers = (data, group, iam) => new Promise((resolve, reject) => {
   const oldGroupUsers = data.Users.map(u => u.UserName);
