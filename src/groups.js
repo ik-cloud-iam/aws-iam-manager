@@ -52,31 +52,29 @@ class Groups {
   }
 
   reassignUsers(data, group) {
-    return new Promise((resolve, reject) => {
-      const oldGroupUsers = data.Users.map(u => u.UserName);
-      const newGroupUsers = group.users;
+    const oldGroupUsers = data.Users.map(u => u.UserName);
+    const newGroupUsers = group.users;
 
-      const usersToAdd = difference(newGroupUsers, oldGroupUsers);
-      const usersToDelete = difference(oldGroupUsers, newGroupUsers);
+    const usersToAdd = difference(newGroupUsers, oldGroupUsers);
+    const usersToDelete = difference(oldGroupUsers, newGroupUsers);
 
-      this.log.info({
-        oldGroupUsers,
-        newGroupUsers,
-        usersToAdd,
-        usersToDelete,
-      });
-
-      return Promise.all(
-        usersToAdd.map(user => this.addUserToGroup(user, group.name))
-          .concat(usersToDelete.map(user => this.removeUserFromGroup(user, group.name)))
-      ).then(result => {
-        this.log.info({ result }, 'Updating users-groups relations finished');
-        return resolve(result);
-      }).catch(error => {
-        this.log.error({ error }, 'Error while assigning user to group');
-        return reject(error);
-      });
+    this.log.info({
+      oldGroupUsers,
+      newGroupUsers,
+      usersToAdd,
+      usersToDelete,
     });
+
+    const resultPromise = Promise.all(
+      usersToAdd.map(user => this.addUserToGroup(user, group.name))
+        .concat(usersToDelete.map(user => this.removeUserFromGroup(user, group.name)))
+    );
+
+    resultPromise
+      .then(result => this.log.info({ result }, 'Updating users-groups relations finished'))
+      .catch(error => this.log.error({ error }, 'Error while assigning user to group'));
+
+    return resultPromise;
   }
 
   forgeNewGroup (group, error) {
@@ -95,23 +93,21 @@ class Groups {
   }
 
   update(json) {
-    return new Promise((resolve, reject) => {
-      this.log.info({newData: json}, 'Updating groups...');
+    this.log.info({newData: json}, 'Updating groups...');
 
-      const promises = json.groups.map(group =>
-        this.iam.getGroup({ GroupName: group.name }).promise().then(data => {
-          this.log.info({ data }, 'Group info');
+    const promises = json.groups.map(group =>
+      this.iam.getGroup({ GroupName: group.name }).promise().then(data => {
+        this.log.info({ data }, 'Group info');
 
-          return this.reassignUsers(data, group).then(resolve).catch(reject);
-        }).catch(error => {
-          this.log.warn({ error }, 'Error while updating group');
+        return this.reassignUsers(data, group).then(resolve).catch(reject);
+      }).catch(error => {
+        this.log.warn({ error }, 'Error while updating group');
 
-          return this.forgeNewGroup(group, error).then(resolve).catch(reject);
-        })
-      );
+        return this.forgeNewGroup(group, error).then(resolve).catch(reject);
+      })
+    );
 
-      return Promise.all(promises).then(resolve).catch(reject);
-    });
+    return Promise.all(promises);
   }
 
   updatePolicies (json, iam) {

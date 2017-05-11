@@ -25,9 +25,9 @@ async function downloadAccountData(contentsUrl, accountName, sts) {
   const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`;
 
   const { data } = await axios.get(authedContentsUrl);
-  const usersBlobUrl = data.filter(f => f.name === 'users.yml')[0].git_url;
-  const groupsBlobUrl = data.filter(f => f.name === 'groups.yml')[0].git_url;
-  const policiesBlobUrl = data.filter(f => f.name === 'policies.yml')[0].git_url;
+  const usersBlobUrl = data.find(f => f.name === 'users.yml').git_url;
+  const groupsBlobUrl = data.find(f => f.name === 'groups.yml').git_url;
+  const policiesBlobUrl = data.find(f => f.name === 'policies.yml').git_url;
 
   const usersData = await utils.getJson(usersBlobUrl);
   const groupsData = await utils.getJson(groupsBlobUrl);
