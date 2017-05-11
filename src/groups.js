@@ -1,11 +1,7 @@
 'use strict';
 
-const Promise = require('bluebird');
-const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
-
-AWS.config.setPromisesDependency(Promise);
 
 class Groups {
   constructor(iam, policies) {
