@@ -63,21 +63,16 @@ class Policies {
     // Because we have not power to get current policies document and compare them
     // We have to remove all policies and re-create them from scratch.
     // Policies are also immutable, it's possible to version them but AWS limits version count to 5.
-    return Promise
-      .all(data.Policies.map(policy => this.removePolicy(policy.Arn)))
-      .then((deleteResult) => {
-        this.log.info({ deleteResult }, 'Old policies removed, creating new...');
+    const deleteResult = await Promise.all(data.Policies.map(policy => this.removePolicy(policy.Arn)));
+    this.log.info({ deleteResult }, 'Old policies removed, creating new...');
 
-        return Promise.all(
-          json.policies
-            .map(policy => this.createPolicy(policy.name, JSON.stringify(policy.document)))
-        )
-          .then(createResult => {
-            this.log.info({ createResult }, 'New policies created');
+    const createResult = await Promise.all(
+      json.policies.map(policy => this.createPolicy(policy.name, JSON.stringify(policy.document)))
+    );
 
-            return { createResult, deleteResult };
-          });
-      });
+    this.log.info({ createResult }, 'New policies created');
+
+    return { createResult, deleteResult };
   }
 }
 
