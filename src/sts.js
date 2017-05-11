@@ -27,7 +27,7 @@ class STS {
       this.AWS.config.credentials = TemporaryCredentials;
     } else {
       this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, skipping account...');
-      throw new Error('Requested document not found in DynamoDB, skipping account...');
+      return Promise.reject('SKIP');
     }
 
     return new this.AWS.IAM();

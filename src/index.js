@@ -8,8 +8,8 @@ const Users = require('./users');
 const Groups = require('./groups');
 const Policies = require('./policies');
 const STS = require('./sts');
-const utils = require('./utils');
 const DynamoDB = require('./dynamodb');
+const utils = require('./utils');
 
 const log = bunyan.createLogger({ name: 'index' });
 AWS.config.update({ region: process.env.REGION });
@@ -56,27 +56,51 @@ async function processAccount(data) {
 
   log.info({ accountName }, 'Processing account...');
 
-  try {
-    const assumedIam = await sts.assumeRole(accountName);
-    const policies = new Policies(assumedIam);
-    const groups = new Groups(assumedIam, policies);
-    const users = new Users(assumedIam, groups);
+  const assumedIam = await sts.assumeRole(accountName);
+  const policies = new Policies(assumedIam);
+  const groups = new Groups(assumedIam, policies);
+  const users = new Users(assumedIam, groups);
 
-    await users.update(usersData, assumedIam, accountName);
-    await policies.update(policiesData, assumedIam);
-    await groups.update(groupsData, assumedIam);
-    await groups.updatePolicies(groupsData, assumedIam);
+  const usersUpdateResult = await users.update(usersData, assumedIam, accountName);
+  const policiesUpdateResult = await policies.update(policiesData, assumedIam);
+  const groupsUpdateResult = await groups.update(groupsData, assumedIam);
+  const policiesAssociationsUpdateResult = await groups.updatePolicies(groupsData, assumedIam);
 
-  } catch(err) {
-    log.error({
-      err,
-      accountName,
-    }, 'Error while processing account');
+  return {
+    usersUpdateResult,
+    policiesUpdateResult,
+    groupsUpdateResult,
+    policiesAssociationsUpdateResult,
+  };
+}
+
+async function processAccountsSequentially(accounts, sts) {
+  const results = [];
+
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
+
+    try {
+      const data = await downloadAccountData(account.url, account.name, sts);
+      const result = await processAccount(data);
+      results.push({
+        account,
+        result,
+      });
+    } catch(err) {
+      results.push({
+        account,
+        err
+      });
+    }
   }
+
+  return results;
 }
 
 module.exports.handler = (event, context, callback) => {
   log.info(event, 'SNS event received');
+
   const githubMessage = JSON.parse(event.Records[0].Sns.Message);
   const contentsUrl = `${githubMessage.repository.contents_url.replace('{+path}', '')}${utils.getAuth()}`;
 
@@ -90,10 +114,10 @@ module.exports.handler = (event, context, callback) => {
 
     log.info({ accounts }, 'Processing accounts...');
 
-    const promises = Promise.map(accounts, account => {
-      return downloadAccountData(account.url, account.name, sts).then(processAccount)
-    }, { concurrency: 1 });
-
-    promises.then((data) => callback(null, { data }))
+    processAccountsSequentially(accounts, sts).then((data) => {
+      callback(null, { data });
+    });
   }).catch((err) => callback(null, { err }));
 };
+
+module.exports.processAccount = processAccount;
