@@ -12,7 +12,7 @@ const utils = require('./utils');
 const DynamoDB = require('./dynamodb');
 
 const log = bunyan.createLogger({ name: 'index' });
-AWS.config.update({ region:'us-east-1' });
+AWS.config.update({ region: process.env.REGION });
 
 function getProcessableAccountNames(payload) {
   return payload.data.map(accountData => ({

@@ -99,11 +99,11 @@ class Groups {
       this.iam.getGroup({ GroupName: group.name }).promise().then(data => {
         this.log.info({ data }, 'Group info');
 
-        return this.reassignUsers(data, group).then(resolve).catch(reject);
+        return this.reassignUsers(data, group);
       }).catch(error => {
         this.log.warn({ error }, 'Error while updating group');
 
-        return this.forgeNewGroup(group, error).then(resolve).catch(reject);
+        return this.forgeNewGroup(group, error);
       })
     );
 

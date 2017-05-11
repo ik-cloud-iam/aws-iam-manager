@@ -13,6 +13,7 @@ provider:
     USERS_PATH: /aim-managed/
     MAIL_SENDER: rafal.wilinski@netguru.co
     EMAIL_DOMAIN: netguru.co
+    REGION: us-east-1
   iamRoleStatements:
     - Effect: Allow
       Action:
