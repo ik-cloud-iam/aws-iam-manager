@@ -46,7 +46,7 @@ class Users {
     }).promise();
 
     // If UserName ends with keys we want to only create programatic access
-    if (UserName.includes('_keys')) {
+    if (UserName.substr(-5) === '_keys') {
       const credentials = await this.generateProgrammaticAccessKeys(UserName, iam);
       return await this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
     } else {

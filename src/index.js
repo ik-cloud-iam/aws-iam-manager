@@ -40,13 +40,13 @@ async function downloadAccountData(contentsUrl, accountName, sts) {
     policiesData,
   }, 'Blobs downloaded');
 
-  return Promise.resolve({
+  return {
     accountName,
     usersData,
     groupsData,
     policiesData,
     sts,
-  });
+  };
 }
 
 async function processAccount(data) {
