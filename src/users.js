@@ -1,6 +1,5 @@
 'use strict';
 
-const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
@@ -10,10 +9,10 @@ const SES = require('./ses');
  * High level wrapper for AWS IAM Users
  */
 class Users {
-  constructor (iam, groups) {
+  constructor (iam, groups, assumedAWS) {
     this.iam = iam;
     this.groups = groups;
-    this.ses = new SES(AWS);
+    this.ses = new SES(assumedAWS);
     this.log = bunyan.createLogger({ name: 'users' });
   }
 

@@ -80,10 +80,12 @@ async function processAccount (data) {
 
   log.info({ accountName }, 'Processing account...');
 
-  const assumedIam = await sts.assumeRole(accountName);
+  const assumedAWS = await sts.assumeRole(accountName);
+  const assumedIam = new assumedAWS.IAM();
+
   const policies = new Policies(assumedIam);
   const groups = new Groups(assumedIam, policies);
-  const users = new Users(assumedIam, groups);
+  const users = new Users(assumedIam, groups, assumedAWS);
 
   const usersUpdateResult = await users.update(usersData, accountName);
   const policiesUpdateResult = await policies.update(policiesData);

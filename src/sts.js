@@ -21,7 +21,7 @@ class STS {
    *
    * @param {String} accountName - name of the account that should be fetched from DynamoDB and
    * impersonated
-   * @returns {AWS.IAM|Promise} - returns AWS.IAM instance if succeed, rejected Promise when
+   * @returns {AWS|Promise} - returns AWS.IAM instance if succeed, rejected Promise when
    * requested object was not found.
    */
   async assumeRole (accountName) {
@@ -47,7 +47,7 @@ class STS {
       return Promise.reject('SKIP');
     }
 
-    return new this.AWS.IAM();
+    return this.AWS;
   }
 }
 
