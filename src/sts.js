@@ -17,14 +17,20 @@ class STS {
    * Assumes IAM Role of other AWS Account and mutates current AWS SDK credentials to operate on
    * that behalf.
    *
+   * If accountName supplied equals to ROOT_ACCOUNT then process of assuming role is skipped.
+   *
    * @param {String} accountName - name of the account that should be fetched from DynamoDB and
    * impersonated
    * @returns {AWS.IAM|Promise} - returns AWS.IAM instance if succeed, rejected Promise when
    * requested object was not found.
    */
   async assumeRole (accountName) {
-    this.log.info({ accountName }, 'Getting RoleARN');
+    if (accountName === process.env.ROOT_ACCOUNT) {
+      this.log.info({ accountName }, 'Processing root account...');
+      return new this.AWS.IAM();
+    }
 
+    this.log.info({ accountName }, 'Getting RoleARN');
     const dynamoDbItem = await this.dynamoDB.getItem(accountName);
 
     if (dynamoDbItem && dynamoDbItem.Item) {

@@ -14,6 +14,7 @@ provider:
     MAIL_SENDER: rafal.wilinski@netguru.co
     EMAIL_DOMAIN: netguru.co
     REGION: us-east-1
+    ROOT_ACCOUNT: netguru_rnd_account
   iamRoleStatements:
     - Effect: Allow
       Action:
