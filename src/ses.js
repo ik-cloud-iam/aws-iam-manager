@@ -63,19 +63,21 @@ class SES {
    *
    * Containing IAM login credentials.
    *
+   * If access keys relates to ROOT_ACCOUNT, then credentials are sent to administrator (MAIL_SENDER).
+   *
    * @param {String} username - name of the user
    * @param {String} credentials - access key and secret
    * @param {String} accountName - name of the account
    * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
    */
    async sendProgrammaticAccessKeys (username, accountName, credentials) {
+    const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
+    const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
+
     const dynamoDbItem = await this.dynamoDb.getItem(accountName);
 
     if (dynamoDbItem && dynamoDbItem.Item) {
       const recipent = dynamoDbItem.Item.ProjectMail.S;
-
-      const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
-      const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
 
       this.log.info({
         Source: process.env.MAIL_SENDER,
@@ -88,6 +90,30 @@ class SES {
           ToAddresses: [
             process.env.MAIL_SENDER,
             recipent,
+          ],
+        },
+        Message: {
+          Subject: {
+            Data: subject,
+          },
+          Body: {
+            Text: {
+              Data: body,
+            },
+          },
+        },
+      }).promise();
+    } else if (accountName === process.env.ROOT_ACCOUNT) {
+      this.log.info({
+        Source: process.env.MAIL_SENDER,
+        To: process.env.MAIL_SENDER,
+      }, 'Programatic user created, sending email to administrator');
+
+      return this.ses.sendEmail({
+        Source: process.env.MAIL_SENDER,
+        Destination: {
+          ToAddresses: [
+            process.env.MAIL_SENDER,
           ],
         },
         Message: {
