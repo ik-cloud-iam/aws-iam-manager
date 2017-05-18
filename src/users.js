@@ -78,6 +78,10 @@ class Users {
     return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
   }
 
+  listUserAccessKeys (UserName) {
+    return this.iam.listAccessKeys({ UserName }).promise();
+  }
+
   /**
    * Deletes IAM User login profile
    * @param UserName
@@ -87,22 +91,14 @@ class Users {
     return this.iam.deleteLoginProfile({ UserName }).promise();
   }
 
-  deleteAccessKey (AccessKeyId) {
-    return this.iam.deleteAccessKey({ AccessKeyId }).promise();
-  }
+  async deleteAccessKeys (UserName) {
+    const accessKeys = await this.listUserAccessKeys(UserName);
+    const promises = accessKeys.AccessKeyMetadata.map(item => this.iam.deleteAccessKey({
+        AccessKeyId: item.AccessKeyId,
+        UserName,
+      }).promise());
 
-  /**
-   * Deactivates access method to user. If user has _keys suffix then we're removing access key.
-   * If user does not have _keys suffix we're simply removing login profile (password).
-   *
-   * @param UserName
-   * @returns {Promise.<D>}
-   */
-  // TODO: Find out way to pass access key to IAM.deleteAccessKey function
-  deactivateUserAccess (UserName) {
-    // if (UserName.substr(-5) === '_keys') return this.deleteAccessKey(UserName);
-
-    return this.deleteLoginProfile(UserName);
+    return Promise.all(promises);
   }
 
   /**
@@ -123,7 +119,12 @@ class Users {
       return this.groups.removeUserFromGroup(UserName, group.GroupName, this.iam);
     });
 
-    await this.deactivateUserAccess(UserName);
+    if (UserName.substr(-5) === '_keys') {
+      await this.deleteAccessKeys(UserName);
+    } else {
+      await this.deleteLoginProfile(UserName);
+    }
+
     await Promise.all(groupRemovalPromises);
     return this.iam.deleteUser({ UserName }).promise();
   }
@@ -132,14 +133,13 @@ class Users {
    * Updates AWS account IAM Users.
    *
    * @param {Object} json - users.yml parsed data
-   * @param {AWS.IAM} iam - AWS.IAM dependency injection
    * @param {String} accountName - name of the account
    * @returns {Promise<*>|Promise.<T>} - returns report of actions
    */
-  async update (json, iam, accountName) {
+  async update (json, accountName) {
     this.log.info({ newData: json }, 'Updating users');
 
-    const data = await iam.listUsers({
+    const data = await this.iam.listUsers({
       PathPrefix: process.env.USERS_PATH,
     }).promise();
 
@@ -156,8 +156,8 @@ class Users {
       usersToDelete,
     });
 
-    return Promise.all(usersToAdd.map(user => this.createUser(user, iam, accountName))
-      .concat(usersToDelete.map(user => this.deleteUser(user, iam))))
+    return Promise.all(usersToAdd.map(user => this.createUser(user, accountName))
+      .concat(usersToDelete.map(user => this.deleteUser(user))))
       .then(result => {
         this.log.info('Updating users finished');
         return result;

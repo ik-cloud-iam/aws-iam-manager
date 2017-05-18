@@ -70,7 +70,7 @@ class SES {
    * @param {String} accountName - name of the account
    * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
    */
-   async sendProgrammaticAccessKeys (username, accountName, credentials) {
+   async sendProgrammaticAccessKeys (username, credentials, accountName) {
     const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
     const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
 

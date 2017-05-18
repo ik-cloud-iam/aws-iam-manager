@@ -85,10 +85,10 @@ async function processAccount (data) {
   const groups = new Groups(assumedIam, policies);
   const users = new Users(assumedIam, groups);
 
-  const usersUpdateResult = await users.update(usersData, assumedIam, accountName);
-  const policiesUpdateResult = await policies.update(policiesData, assumedIam);
-  const groupsUpdateResult = await groups.update(groupsData, assumedIam);
-  const policiesAssociationsUpdateResult = await groups.updatePolicies(groupsData, assumedIam);
+  const usersUpdateResult = await users.update(usersData, accountName);
+  const policiesUpdateResult = await policies.update(policiesData);
+  const groupsUpdateResult = await groups.update(groupsData);
+  const policiesAssociationsUpdateResult = await groups.updatePolicies(groupsData);
 
   return {
     usersUpdateResult,

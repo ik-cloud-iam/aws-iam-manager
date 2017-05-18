@@ -133,11 +133,11 @@ class Groups {
     return Promise.all(promises);
   }
 
-  updatePolicies (json, iam) {
+  updatePolicies (json) {
     this.log.info({ newData: json }, 'Updating group policies...');
 
     const attachPolicyRequests = json.groups.map(group =>
-      this.attachGroupPolicy(group.name, group.policy, iam));
+      this.attachGroupPolicy(group.name, group.policy, this.iam));
 
     return Promise.all(attachPolicyRequests);
   }

@@ -25,11 +25,6 @@ class STS {
    * requested object was not found.
    */
   async assumeRole (accountName) {
-    if (accountName === process.env.ROOT_ACCOUNT) {
-      this.log.info({ accountName }, 'Processing root account...');
-      return new this.AWS.IAM();
-    }
-
     this.log.info({ accountName }, 'Getting RoleARN');
     const dynamoDbItem = await this.dynamoDB.getItem(accountName);
 
@@ -44,6 +39,9 @@ class STS {
 
       this.AWS.config.credentials = new this.AWS.EnvironmentCredentials('AWS');
       this.AWS.config.credentials = TemporaryCredentials;
+    } else if (accountName === process.env.ROOT_ACCOUNT) {
+      this.log.info({ accountName }, 'Processing root account...');
+      this.AWS.config.credentials = new this.AWS.EnvironmentCredentials('AWS');
     } else {
       this.log.warn({ dynamoDbItem }, 'Requested document not found in DynamoDB, skipping account...');
       return Promise.reject('SKIP');
