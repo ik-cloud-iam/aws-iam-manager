@@ -4,14 +4,14 @@ const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 
 class Groups {
-  constructor(iam, policies) {
+  constructor (iam, policies) {
     this.iam = iam;
     this.policies = policies;
     this.log = bunyan.createLogger({ name: 'groups' });
   }
 
-  addUserToGroup(UserName, GroupName) {
-    this.log.info({UserName, GroupName}, 'Assigning user to group');
+  addUserToGroup (UserName, GroupName) {
+    this.log.info({ UserName, GroupName }, 'Assigning user to group');
 
     return this.iam.addUserToGroup({
       UserName,
@@ -19,14 +19,14 @@ class Groups {
     }).promise();
   }
 
-  removeUserFromGroup(UserName, GroupName) {
+  removeUserFromGroup (UserName, GroupName) {
     return this.iam.removeUserFromGroup({
       UserName,
       GroupName,
     }).promise();
   }
 
-  createGroup(GroupName) {
+  createGroup (GroupName) {
     this.log.info({ GroupName }, 'Creating new group...');
     return this.iam.createGroup({
       GroupName,
@@ -34,16 +34,18 @@ class Groups {
     }).promise();
   }
 
-  async attachGroupPolicy(GroupName, PolicyName) {
+  async attachGroupPolicy (GroupName, PolicyName) {
     this.log.info({ GroupName, PolicyName }, 'Attaching policy to group');
 
     const policies = await this.policies.getPolicyArn(PolicyName);
+
     if (policies.length === 0) {
-      this.log.error({PolicyName}, 'Requested policy not found!');
+      this.log.error({ PolicyName }, 'Requested policy not found!');
     }
 
     const PolicyArn = policies[0].Arn;
-    this.log.info({PolicyArn, PolicyName, GroupName}, 'Policy ARN attached');
+
+    this.log.info({ PolicyArn, PolicyName, GroupName }, 'Policy ARN attached');
 
     return this.iam.attachGroupPolicy({
       GroupName,
@@ -51,7 +53,7 @@ class Groups {
     }).promise();
   }
 
-  reassignUsers(data, group) {
+  reassignUsers (data, group) {
     const oldGroupUsers = data.Users.map(u => u.UserName);
     const newGroupUsers = group.users;
 
@@ -80,10 +82,10 @@ class Groups {
   forgeNewGroup (group, error) {
     return new Promise((resolve, reject) => {
       if (error.code === 'NoSuchEntity') {
-        this.log.info({name: group.name}, 'Group not found, creating...');
+        this.log.info({ name: group.name }, 'Group not found, creating...');
 
-        return this.createGroup(group.name, iam).then(() => {
-          this.reassignUsers({Users: []}, group, iam)
+        return this.createGroup(group.name, this.iam).then(() => {
+          this.reassignUsers({ Users: [] }, group, this.iam)
             .then(resolve)
         }).catch(reject);
       }
@@ -92,8 +94,8 @@ class Groups {
     });
   }
 
-  update(json) {
-    this.log.info({newData: json}, 'Updating groups...');
+  update (json) {
+    this.log.info({ newData: json }, 'Updating groups...');
 
     const promises = json.groups.map(group =>
       this.iam.getGroup({ GroupName: group.name }).promise().then(data => {
@@ -117,7 +119,7 @@ class Groups {
       this.attachGroupPolicy(group.name, group.policy, iam));
 
     return Promise.all(attachPolicyRequests);
-  };
+  }
 }
 
 module.exports = Groups;

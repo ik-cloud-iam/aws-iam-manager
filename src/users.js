@@ -5,21 +5,21 @@ const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
-const groups = require('./groups');
 const SES = require('./ses');
 
 AWS.config.setPromisesDependency(Promise);
 
 class Users {
-  constructor(iam, groups) {
+  constructor (iam, groups) {
     this.iam = iam;
     this.groups = groups;
     this.ses = new SES(AWS);
-    this.log = bunyan.createLogger({name: 'users'});
+    this.log = bunyan.createLogger({ name: 'users' });
   }
 
-  async generateUserLoginProfile(UserName) {
+  async generateUserLoginProfile (UserName) {
     const Password = crypto.randomBytes(16).toString('base64');
+
     await this.iam.createLoginProfile({
       Password,
       PasswordResetRequired: true,
@@ -29,7 +29,7 @@ class Users {
     return Password;
   }
 
-  async generateProgrammaticAccessKeys(UserName) {
+  async generateProgrammaticAccessKeys (UserName) {
     const data = await this.iam.createAccessKey({
       UserName,
     }).promise();
@@ -37,8 +37,8 @@ class Users {
     return data.AccessKey;
   }
 
-  async createUser(UserName, accountName) {
-    this.log.info({UserName}, 'Creating new user...');
+  async createUser (UserName, accountName) {
+    this.log.info({ UserName }, 'Creating new user...');
 
     await this.iam.createUser({
       UserName,
@@ -47,37 +47,39 @@ class Users {
 
     // If UserName ends with keys we want to only create programatic access
     if (UserName.substr(-5) === '_keys') {
-      const credentials = await this.generateProgrammaticAccessKeys(UserName, iam);
+      const credentials = await this.generateProgrammaticAccessKeys(UserName, this.iam);
+
       return this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
-    } else {
-      const password = await this.generateUserLoginProfile(Username, iam);
-      return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
     }
+      const password = await this.generateUserLoginProfile(UserName, this.iam);
+
+      return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
+
   }
 
   // TODO: Refactor to async func
-  deleteUser(UserName) {
+  deleteUser (UserName) {
     return new Promise((resolve, reject) => {
-      this.log.info({UserName}, 'Deleting old user...');
+      this.log.info({ UserName }, 'Deleting old user...');
 
-      this.iam.listGroupsForUser({UserName}).promise().then(userGroups => {
-        this.log.info({userGroups}, 'Removing user from groups...');
+      this.iam.listGroupsForUser({ UserName }).promise().then(userGroups => {
+        this.log.info({ userGroups }, 'Removing user from groups...');
 
         const groupRemovalPromises = userGroups.Groups.map(group => {
-          this.log.info({name: group.GroupName}, 'Removing user from group...');
+          this.log.info({ name: group.GroupName }, 'Removing user from group...');
 
-          return this.groups.removeUserFromGroup(UserName, group.GroupName, iam);
+          return this.groups.removeUserFromGroup(UserName, group.GroupName, this.iam);
         });
 
         Promise.all(groupRemovalPromises).then(() =>
-          this.iam.deleteUser({UserName}).promise().then(resolve).catch(reject)
+          this.iam.deleteUser({ UserName }).promise().then(resolve).catch(reject)
         ).catch(reject);
       }).catch(error => reject(error));
     });
   }
 
-  async update(json, iam, accountName) {
-    this.log.info({newData: json}, 'Updating users');
+  async update (json, iam, accountName) {
+    this.log.info({ newData: json }, 'Updating users');
 
     const data = await iam.listUsers({
       PathPrefix: process.env.USERS_PATH,
@@ -102,9 +104,7 @@ class Users {
         this.log.info('Updating users finished');
         return result;
       })
-      .catch(err => {
-        return Promise.reject(err);
-      });
+      .catch(err => Promise.reject(err));
   }
 }
 

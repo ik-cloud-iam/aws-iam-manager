@@ -3,6 +3,9 @@
         "node": true,
         "es6": true
     },
+    "parserOptions": {
+        "ecmaVersion": 2017
+    },
     "extends": "eslint:recommended",
     "rules": {
         "accessor-pairs": "error",
@@ -24,9 +27,9 @@
         "block-spacing": "error",
         "brace-style": "error",
         "callback-return": "error",
-        "camelcase": "error",
+        "camelcase": "off",
         "capitalized-comments": "error",
-        "class-methods-use-this": "error",
+        "class-methods-use-this": "off",
         "comma-dangle": "off",
         "comma-spacing": [
             "error",
@@ -63,7 +66,7 @@
         "func-name-matching": "error",
         "func-names": "error",
         "func-style": [
-            "error",
+            "off",
             "expression"
         ],
         "generator-star-spacing": "error",
@@ -89,7 +92,7 @@
         "max-lines": "error",
         "max-nested-callbacks": "error",
         "max-params": "error",
-        "max-statements": "error",
+        "max-statements": "off",
         "max-statements-per-line": "error",
         "multiline-ternary": "error",
         "new-cap": "error",
@@ -254,7 +257,7 @@
             "error",
             "never"
         ],
-        "valid-jsdoc": "error",
+        "valid-jsdoc": "off",
         "vars-on-top": "error",
         "wrap-iife": "error",
         "wrap-regex": "error",

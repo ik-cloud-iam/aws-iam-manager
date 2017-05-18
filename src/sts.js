@@ -3,20 +3,21 @@
 const bunyan = require('bunyan');
 
 class STS {
-  constructor(AWS, dynamoDB) {
+  constructor (AWS, dynamoDB) {
     this.AWS = AWS;
     this.sts = new AWS.STS();
     this.log = bunyan.createLogger({ name: 'sts' });
     this.dynamoDB = dynamoDB;
   }
 
-  async assumeRole(accountName) {
+  async assumeRole (accountName) {
     this.log.info({ accountName }, 'Getting RoleARN');
 
     const dynamoDbItem = await this.dynamoDB.getItem(accountName);
 
     if (dynamoDbItem && dynamoDbItem.Item) {
       const RoleArn = dynamoDbItem.Item.RoleArn.S;
+
       this.log.info({ accountName, dynamoDbItem, RoleArn }, 'Assuming role...');
 
       const TemporaryCredentials = new this.AWS.TemporaryCredentials({
@@ -31,7 +32,7 @@ class STS {
     }
 
     return new this.AWS.IAM();
-  };
+  }
 }
 
 module.exports = STS;

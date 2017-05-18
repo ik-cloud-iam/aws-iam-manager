@@ -3,22 +3,22 @@
 const bunyan = require('bunyan');
 
 class Policies {
-  constructor(iam) {
+  constructor (iam) {
     this.iam = iam;
     this.log = bunyan.createLogger({ name: 'policies' });
   }
 
-  async createPolicy(PolicyName, PolicyDocument) {
+  createPolicy (PolicyName, PolicyDocument) {
     this.log.info({ PolicyName, PolicyDocument }, 'Creating new policy...');
 
-    return await this.iam.createPolicy({
+    return this.iam.createPolicy({
       PolicyName,
       PolicyDocument,
       Path: process.env.USERS_PATH,
     }).promise();
   }
 
-  async getPolicyArn(PolicyName) {
+  async getPolicyArn (PolicyName) {
     this.log.info({ PolicyName }, 'Getting policy...');
 
     const payload = await this.iam.listPolicies({
@@ -28,7 +28,7 @@ class Policies {
     return payload.Policies.filter(policy => policy.PolicyName === PolicyName);
   }
 
-  async detachFromAllEntities(PolicyArn) {
+  async detachFromAllEntities (PolicyArn) {
     const entitiesWithAttachedPolicy = await this.iam.listEntitiesForPolicy({
       PolicyArn,
       PathPrefix: process.env.USERS_PATH,
@@ -42,16 +42,16 @@ class Policies {
 
     this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
-    return await Promise.all(detachRequests);
+    return Promise.all(detachRequests);
   }
 
   async removePolicy (PolicyArn) {
     this.log.info({ PolicyArn }, 'Deleting old policy...');
     await this.detachFromAllEntities(PolicyArn);
     return this.iam.deletePolicy({ PolicyArn }).promise();
-  };
+  }
 
-  async update(json) {
+  async update (json) {
     this.log.info({ newData: json }, 'Updating policies');
 
     const data = await this.iam.listPolicies({
@@ -64,6 +64,7 @@ class Policies {
     // We have to remove all policies and re-create them from scratch.
     // Policies are also immutable, it's possible to version them but AWS limits version count to 5.
     const deleteResult = await Promise.all(data.Policies.map(policy => this.removePolicy(policy.Arn)));
+
     this.log.info({ deleteResult }, 'Old policies removed, creating new...');
 
     const createResult = await Promise.all(

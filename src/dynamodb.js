@@ -1,13 +1,14 @@
 'use strict';
+
 const bunyan = require('bunyan');
 
 class DynamoDB {
-  constructor(dynamoDB) {
+  constructor (dynamoDB) {
     this.dynamodb = dynamoDB;
     this.log = bunyan.createLogger({ name: 'dynamodb' });
   }
 
-  getDynamoDbQueryParams(accountName) {
+  getDynamoDbQueryParams (accountName) {
     return {
       TableName: 'aim_roles',
       Key: {
@@ -18,7 +19,7 @@ class DynamoDB {
     };
   }
 
-  getItem(accountName) {
+  getItem (accountName) {
     return this.dynamodb.getItem(this.getDynamoDbQueryParams(accountName)).promise();
   }
 }
