@@ -1,6 +1,7 @@
 'use strict';
 
 const bunyan = require('bunyan');
+const DynamoDB = require('./dynamodb');
 
 /**
  * High-level wrapper for AWS SES Service
@@ -9,6 +10,7 @@ class SES {
   constructor (AWS) {
     this.ses = new AWS.SES({ apiVersion: '2010-12-01' });
     this.log = bunyan.createLogger({ name: 'ses' });
+    this.dynamoDb = new DynamoDB(new AWS.DynamoDB())
   }
 
   /**
@@ -61,13 +63,47 @@ class SES {
    *
    * Containing IAM login credentials.
    *
-   * @param {String} username - username of user
+   * @param {String} username - name of the user
    * @param {String} credentials - access key and secret
    * @param {String} accountName - name of the account
    * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
    */
-  async sendProgrammaticAccessKeys (username, credentials, accountName) {
-    // TODO: Implement
+   async sendProgrammaticAccessKeys (username, accountName, credentials) {
+    const dynamoDbItem = await this.dynamoDb.getItem(accountName);
+
+    if (dynamoDbItem && dynamoDbItem.Item) {
+      const recipent = dynamoDbItem.Item.ProjectMail.S;
+
+      const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
+      const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
+
+      this.log.info({
+        Source: process.env.MAIL_SENDER,
+        To: recipent,
+      }, 'Programatic user created, sending email');
+
+      return this.ses.sendEmail({
+        Source: process.env.MAIL_SENDER,
+        Destination: {
+          ToAddresses: [
+            process.env.MAIL_SENDER,
+            recipent,
+          ],
+        },
+        Message: {
+          Subject: {
+            Data: subject,
+          },
+          Body: {
+            Text: {
+              Data: body,
+            },
+          },
+        },
+      }).promise();
+    }
+
+    return Promise.reject();
   }
 }
 

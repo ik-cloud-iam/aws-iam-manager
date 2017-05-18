@@ -39,14 +39,12 @@ class Users {
    * Generates programatic access to IAM User - Access Key and Secret Key.
    *
    * @param {String} UserName - name of the user
-   * @returns {IAM.CreateAccessKeyResponse} - Access Key and Secret Key.
+   * @returns {Promise<IAM.CreateAccessKeyResponse>} - Promise resolving with Access Key and Secret Key
    */
-  async generateProgrammaticAccessKeys (UserName) {
-    const data = await this.iam.createAccessKey({
+  generateProgrammaticAccessKeys (UserName) {
+    return this.iam.createAccessKey({
       UserName,
     }).promise();
-
-    return data;
   }
 
   /**
@@ -74,10 +72,10 @@ class Users {
 
       return this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
     }
-      const password = await this.generateUserLoginProfile(UserName, this.iam);
 
-      return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
+    const password = await this.generateUserLoginProfile(UserName, this.iam);
 
+    return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
   }
 
   /**
