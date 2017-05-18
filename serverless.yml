@@ -59,7 +59,7 @@ functions:
 
 resources:
   Resources:
-    # Create Role that will be used to Push Messages on Githubs behalf
+    # Create Role that will be used to Push Messages on Github's behalf
     IAMManagerUser:
       Type: "AWS::IAM::User"
       Properties:

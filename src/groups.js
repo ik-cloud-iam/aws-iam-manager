@@ -10,6 +10,13 @@ class Groups {
     this.log = bunyan.createLogger({ name: 'groups' });
   }
 
+  /**
+   * Adds user to a group.
+   *
+   * @param {String} UserName - name of user
+   * @param {String} GroupName - name of group
+   * @returns {Promise<D>}
+   */
   addUserToGroup (UserName, GroupName) {
     this.log.info({ UserName, GroupName }, 'Assigning user to group');
 
@@ -19,6 +26,13 @@ class Groups {
     }).promise();
   }
 
+  /**
+   * Removes user from a group.
+   *
+   * @param {String} UserName - name of user
+   * @param {String} GroupName - name of group
+   * @returns {Promise<D>}
+   */
   removeUserFromGroup (UserName, GroupName) {
     return this.iam.removeUserFromGroup({
       UserName,
@@ -79,6 +93,13 @@ class Groups {
     return resultPromise;
   }
 
+  /**
+   * Checks whether group exists. If not, it creates one and assigns users to it.
+   *
+   * @param group
+   * @param error
+   * @returns {Promise}
+   */
   forgeNewGroup (group, error) {
     return new Promise((resolve, reject) => {
       if (error.code === 'NoSuchEntity') {

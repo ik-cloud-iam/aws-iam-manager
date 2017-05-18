@@ -68,14 +68,41 @@ class Users {
 
     // If UserName ends with keys we want to only create programatic access
     if (UserName.substr(-5) === '_keys') {
-      const credentials = await this.generateProgrammaticAccessKeys(UserName, this.iam);
+      const credentials = await this.generateProgrammaticAccessKeys(UserName);
 
       return this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
     }
 
-    const password = await this.generateUserLoginProfile(UserName, this.iam);
+    const password = await this.generateUserLoginProfile(UserName);
 
     return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
+  }
+
+  /**
+   * Deletes IAM User login profile
+   * @param UserName
+   * @returns {Promise<D>}
+   */
+  deleteLoginProfile (UserName) {
+    return this.iam.deleteLoginProfile({ UserName }).promise();
+  }
+
+  deleteAccessKey (AccessKeyId) {
+    return this.iam.deleteAccessKey({ AccessKeyId }).promise();
+  }
+
+  /**
+   * Deactivates access method to user. If user has _keys suffix then we're removing access key.
+   * If user does not have _keys suffix we're simply removing login profile (password).
+   *
+   * @param UserName
+   * @returns {Promise.<D>}
+   */
+  // TODO: Find out way to pass access key to IAM.deleteAccessKey function
+  deactivateUserAccess (UserName) {
+    // if (UserName.substr(-5) === '_keys') return this.deleteAccessKey(UserName);
+
+    return this.deleteLoginProfile(UserName);
   }
 
   /**
@@ -86,25 +113,19 @@ class Users {
    *
    * @param {String} UserName - name of the user
    */
-  // TODO: Refactor to async func
-  deleteUser (UserName) {
-    return new Promise((resolve, reject) => {
-      this.log.info({ UserName }, 'Deleting old user...');
+  async deleteUser (UserName) {
+    this.log.info({ UserName }, 'Deleting old user...');
+    const userGroups = await this.iam.listGroupsForUser({ UserName }).promise();
 
-      this.iam.listGroupsForUser({ UserName }).promise().then(userGroups => {
-        this.log.info({ userGroups }, 'Removing user from groups...');
+    const groupRemovalPromises = userGroups.Groups.map(group => {
+      this.log.info({ name: group.GroupName }, 'Removing user from group...');
 
-        const groupRemovalPromises = userGroups.Groups.map(group => {
-          this.log.info({ name: group.GroupName }, 'Removing user from group...');
-
-          return this.groups.removeUserFromGroup(UserName, group.GroupName, this.iam);
-        });
-
-        Promise.all(groupRemovalPromises).then(() =>
-          this.iam.deleteUser({ UserName }).promise().then(resolve).catch(reject)
-        ).catch(reject);
-      }).catch(error => reject(error));
+      return this.groups.removeUserFromGroup(UserName, group.GroupName, this.iam);
     });
+
+    await this.deactivateUserAccess(UserName);
+    await Promise.all(groupRemovalPromises);
+    return this.iam.deleteUser({ UserName }).promise();
   }
 
   /**
