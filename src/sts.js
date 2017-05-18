@@ -2,6 +2,9 @@
 
 const bunyan = require('bunyan');
 
+/**
+ * High-level wrapper for AWS STS service.
+ */
 class STS {
   constructor (AWS, dynamoDB) {
     this.AWS = AWS;
@@ -10,6 +13,15 @@ class STS {
     this.dynamoDB = dynamoDB;
   }
 
+  /**
+   * Assumes IAM Role of other AWS Account and mutates current AWS SDK credentials to operate on
+   * that behalf.
+   *
+   * @param {String} accountName - name of the account that should be fetched from DynamoDB and
+   * impersonated
+   * @returns {AWS.IAM|Promise} - returns AWS.IAM instance if succeed, rejected Promise when
+   * requested object was not found.
+   */
   async assumeRole (accountName) {
     this.log.info({ accountName }, 'Getting RoleARN');
 

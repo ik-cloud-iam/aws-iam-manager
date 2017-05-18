@@ -1,14 +1,14 @@
 'use strict';
 
-const Promise = require('bluebird');
 const AWS = require('aws-sdk');
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
 const SES = require('./ses');
 
-AWS.config.setPromisesDependency(Promise);
-
+/**
+ * High level wrapper for AWS IAM Users
+ */
 class Users {
   constructor (iam, groups) {
     this.iam = iam;
@@ -17,6 +17,12 @@ class Users {
     this.log = bunyan.createLogger({ name: 'users' });
   }
 
+  /**
+   * Creates login profile for IAM User - generates and sets password
+   *
+   * @param {String} UserName - name of the user
+   * @returns {String} - Password
+   */
   async generateUserLoginProfile (UserName) {
     const Password = crypto.randomBytes(16).toString('base64');
 
@@ -29,14 +35,31 @@ class Users {
     return Password;
   }
 
+  /**
+   * Generates programatic access to IAM User - Access Key and Secret Key.
+   *
+   * @param {String} UserName - name of the user
+   * @returns {IAM.CreateAccessKeyResponse} - Access Key and Secret Key.
+   */
   async generateProgrammaticAccessKeys (UserName) {
     const data = await this.iam.createAccessKey({
       UserName,
     }).promise();
 
-    return data.AccessKey;
+    return data;
   }
 
+  /**
+   * Creates an IAM user.
+   *
+   * If UserName ends with '_keys' suffix then AIM assumes that this account purpose is programatic
+   * access and instead of generating password it generates Access Key and Secret Key which are
+   * send to project email.
+   *
+   * @param {String} UserName - name of the user
+   * @param {String} accountName - name of the account
+   * @returns {Promise.<SES.Types.SendEmailResponse>}
+   */
   async createUser (UserName, accountName) {
     this.log.info({ UserName }, 'Creating new user...');
 
@@ -57,6 +80,14 @@ class Users {
 
   }
 
+  /**
+   * Does two things:
+   *
+   * - Removes user from all groups where he or she belongs to
+   * - After that, removes user
+   *
+   * @param {String} UserName - name of the user
+   */
   // TODO: Refactor to async func
   deleteUser (UserName) {
     return new Promise((resolve, reject) => {
@@ -78,6 +109,14 @@ class Users {
     });
   }
 
+  /**
+   * Updates AWS account IAM Users.
+   *
+   * @param {Object} json - users.yml parsed data
+   * @param {AWS.IAM} iam - AWS.IAM dependency injection
+   * @param {String} accountName - name of the account
+   * @returns {Promise<*>|Promise.<T>} - returns report of actions
+   */
   async update (json, iam, accountName) {
     this.log.info({ newData: json }, 'Updating users');
 
