@@ -155,13 +155,12 @@ class Users {
       usersToDelete,
     });
 
-    return Promise.all(usersToAdd.map(user => this.createUser(user, accountName))
-      .concat(usersToDelete.map(user => this.deleteUser(user))))
-      .then(result => {
-        this.log.info('Updating users finished');
-        return result;
-      })
-      .catch(err => Promise.reject(err));
+    const promises = usersToAdd.map(user => this.createUser(user, accountName));
+    const composedPromises = promises.concat(usersToDelete.map(user => this.deleteUser(user)));
+
+    this.log.info('Updating users finished');
+
+    return Promise.all(composedPromises);
   }
 }
 
