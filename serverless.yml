@@ -1,7 +1,7 @@
 service: aws-iam-manager
 provider:
   name: aws
-  runtime: nodejs4.3
+  runtime: nodejs6.10
   memorySize: 512
   timeout: 30
   stackTags: aws-iam-manager
@@ -13,6 +13,8 @@ provider:
     USERS_PATH: /aim-managed/
     MAIL_SENDER: rafal.wilinski@netguru.co
     EMAIL_DOMAIN: netguru.co
+    REGION: us-east-1
+    ROOT_ACCOUNT: netguru_rnd_account
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -20,6 +22,7 @@ provider:
         - iam:DeleteUser
         - iam:CreateUser
         - iam:CreateLoginProfile
+        - iam:CreateAccessKey
         - iam:AddUserToGroup
         - iam:RemoveUserFromGroup
         - iam:ListPolicies
@@ -40,17 +43,13 @@ provider:
 
 package:
   exclude:
-    - node_modules/aws-sdk/**
-    - node_modules/babel-cli/**
-    - node_modules/eslint/**
-    - node_modules/babel-*/**
     - '*.png'
 
 region: us-east-1
 
 functions:
   IAMManagerSNSHandler:
-    handler: build/index.handler
+    handler: build/src/index.handler
     events:
       - sns:
           topicName: IAMManagerNotifyTopic
@@ -58,7 +57,7 @@ functions:
 
 resources:
   Resources:
-    # Create Role that will be used to Push Messages on Githubs behalf
+    # Create Role that will be used to Push Messages on Github's behalf
     IAMManagerUser:
       Type: "AWS::IAM::User"
       Properties:
