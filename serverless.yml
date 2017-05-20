@@ -1,7 +1,7 @@
 service: aws-iam-manager
 provider:
   name: aws
-  runtime: nodejs4.3
+  runtime: nodejs6.10
   memorySize: 512
   timeout: 30
   stackTags: aws-iam-manager
@@ -22,6 +22,7 @@ provider:
         - iam:DeleteUser
         - iam:CreateUser
         - iam:CreateLoginProfile
+        - iam:CreateAccessKey
         - iam:AddUserToGroup
         - iam:RemoveUserFromGroup
         - iam:ListPolicies
@@ -42,10 +43,6 @@ provider:
 
 package:
   exclude:
-    - node_modules/aws-sdk/**
-    - node_modules/babel-cli/**
-    - node_modules/eslint/**
-    - node_modules/babel-*/**
     - '*.png'
 
 region: us-east-1
