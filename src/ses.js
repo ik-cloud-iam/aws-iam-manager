@@ -33,7 +33,7 @@ class SES {
     this.log.info({
       Source: process.env.MAIL_SENDER,
       To: recipent,
-    }, 'User created, sending email');
+    }, 'Sending email...');
 
     return this.ses.sendEmail({
       Source: process.env.MAIL_SENDER,
@@ -82,7 +82,7 @@ class SES {
       this.log.info({
         Source: process.env.MAIL_SENDER,
         To: recipent,
-      }, 'Programatic user created, sending email');
+      }, 'Sending email...');
 
       return this.ses.sendEmail({
         Source: process.env.MAIL_SENDER,
@@ -107,7 +107,7 @@ class SES {
       this.log.info({
         Source: process.env.MAIL_SENDER,
         To: process.env.MAIL_SENDER,
-      }, 'Programatic user created, sending email to administrator');
+      }, 'Sending email to administrator...');
 
       return this.ses.sendEmail({
         Source: process.env.MAIL_SENDER,

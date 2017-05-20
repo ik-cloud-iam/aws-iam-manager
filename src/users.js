@@ -65,14 +65,23 @@ class Users {
       Path: process.env.USERS_PATH,
     }).promise();
 
-    // If UserName ends with keys we want to only create programatic access
+    // If UserName ends with keys we want to only create programmatic access
     if (UserName.substr(-5) === '_keys') {
       const credentials = await this.generateProgrammaticAccessKeys(UserName);
+
+      this.log.info({
+        credentials,
+      }, 'Programmatic keys created.');
 
       return this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
     }
 
     const password = await this.generateUserLoginProfile(UserName);
+
+    this.log.info({
+      password,
+      UserName,
+    }, 'User created.');
 
     return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
   }
@@ -133,7 +142,7 @@ class Users {
    *
    * @param {Object} json - users.yml parsed data
    * @param {String} accountName - name of the account
-   * @returns {Promise<*>|Promise.<T>} - returns report of actions
+   * @returns {Promise.<*>} - returns report of actions
    */
   async update (json, accountName) {
     this.log.info({ newData: json }, 'Updating users');
@@ -155,12 +164,24 @@ class Users {
       usersToDelete,
     });
 
-    const promises = usersToAdd.map(user => this.createUser(user, accountName));
-    const composedPromises = promises.concat(usersToDelete.map(user => this.deleteUser(user)));
+    const createUserPromises = usersToAdd.map(user => {
+      const createUserResult = this.createUser(user, accountName);
 
-    this.log.info('Updating users finished');
+      this.log.info({ createUserResult }, 'User created.');
+      return createUserResult;
+    });
 
-    return Promise.all(composedPromises);
+    const deleteUserPromises = usersToDelete.map(user => {
+      const deleteUserResult = this.deleteUser(user);
+
+      this.log.info({ deleteUserResult }, 'User deleted.');
+      return deleteUserResult;
+    });
+
+    return Promise.all([
+      Promise.all(createUserPromises),
+      Promise.all(deleteUserPromises),
+    ]);
   }
 }
 

@@ -124,9 +124,18 @@ async function processAccountsSequentially (accounts, sts) {
         result,
       });
     } catch (err) {
+      log.warn({
+        message: err.message,
+        stack: err.stack,
+        account,
+      }, 'Error while processing one of the accounts');
+
       results.push({
         account,
-        err
+        error: {
+          message: err.message,
+          stack: err.stack,
+        },
       });
     }
   }
@@ -155,5 +164,3 @@ module.exports.handler = (event, context, callback) => {
     });
   }).catch(err => callback(null, { err }));
 };
-
-module.exports.processAccount = processAccount;
