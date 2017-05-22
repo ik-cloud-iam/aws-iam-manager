@@ -23,6 +23,7 @@ provider:
         - iam:CreateUser
         - iam:CreateLoginProfile
         - iam:CreateAccessKey
+        - iam:DeleteAccessKey
         - iam:AddUserToGroup
         - iam:RemoveUserFromGroup
         - iam:ListPolicies
@@ -30,6 +31,7 @@ provider:
         - iam:CreatePolicy
         - iam:DeletePolicy
         - iam:GetPolicy
+        - iam:ListAccessKeys
         - iam:ListGroups
         - iam:ListGroupsForUser
         - iam:GetGroup
