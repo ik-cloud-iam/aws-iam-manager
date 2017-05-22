@@ -37,6 +37,7 @@ provider:
         - iam:GetGroup
         - iam:CreateGroup
         - iam:DeleteGroup
+        - iam:DeleteLoginProfile
         - iam:DeleteGroupPolicy
         - iam:AttachGroupPolicy
         - iam:DetachGroupPolicy
