@@ -31,6 +31,7 @@ provider:
         - iam:DeletePolicy
         - iam:GetPolicy
         - iam:ListGroups
+        - iam:ListGroupsForUser
         - iam:GetGroup
         - iam:CreateGroup
         - iam:DeleteGroup
