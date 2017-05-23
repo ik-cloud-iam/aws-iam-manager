@@ -64,7 +64,7 @@ class SES {
    * @param {String} username - name of the user
    * @param {Object} credentials - access key and secret
    * @param {String} accountName - name of the account
-   * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
+   * @returns {boolean|Promise} - true or rejected promise
    */
    async enqueueSendProgrammaticAccessKeys (username, credentials, accountName) {
     const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
@@ -95,6 +95,7 @@ class SES {
         },
       });
 
+      return true;
     } else if (accountName === process.env.ROOT_ACCOUNT) {
       this.mailsQueue.push({
         Source: process.env.MAIL_SENDER,
@@ -114,6 +115,8 @@ class SES {
           },
         },
       });
+
+      return true;
     }
 
     return Promise.reject();
@@ -126,7 +129,7 @@ class SES {
     const report = [];
 
     this.log.info({
-      count: report.length,
+      count: this.mailsQueue.length,
     }, 'Processing emails from queue');
 
     await this.mailsQueue.forEach(async mailData => {

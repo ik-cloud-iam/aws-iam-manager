@@ -72,7 +72,7 @@ class Users {
         credentials,
       }, 'Programmatic keys created.');
 
-      this.ses.enqueueSendProgrammaticAccessKeys(UserName, credentials, accountName);
+      await this.ses.enqueueSendProgrammaticAccessKeys(UserName, credentials, accountName);
       return createUserResponse;
     }
 
@@ -83,7 +83,7 @@ class Users {
       UserName,
     }, 'User created.');
 
-    await this.ses.enqueueSendUserCredentialsEmail(UserName, password, accountName);
+    this.ses.enqueueSendUserCredentialsEmail(UserName, password, accountName);
     return createUserResponse;
   }
 
