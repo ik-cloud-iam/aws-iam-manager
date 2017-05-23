@@ -3,16 +3,15 @@
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
 const crypto = require('crypto');
-const SES = require('./ses');
 
 /**
  * High level wrapper for AWS IAM Users
  */
 class Users {
-  constructor (iam, groups, assumedAWS) {
+  constructor (iam, ses, groups) {
     this.iam = iam;
     this.groups = groups;
-    this.ses = new SES(assumedAWS);
+    this.ses = ses;
     this.log = bunyan.createLogger({ name: 'users' });
   }
 
@@ -60,7 +59,7 @@ class Users {
   async createUser (UserName, accountName) {
     this.log.info({ UserName }, 'Creating new user...');
 
-    await this.iam.createUser({
+    const createUserResponse = await this.iam.createUser({
       UserName,
       Path: process.env.USERS_PATH,
     }).promise();
@@ -73,7 +72,8 @@ class Users {
         credentials,
       }, 'Programmatic keys created.');
 
-      return this.ses.sendProgrammaticAccessKeys(UserName, credentials, accountName);
+      this.ses.enqueueSendProgrammaticAccessKeys(UserName, credentials, accountName);
+      return createUserResponse;
     }
 
     const password = await this.generateUserLoginProfile(UserName);
@@ -83,7 +83,8 @@ class Users {
       UserName,
     }, 'User created.');
 
-    return this.ses.sendUserCredentialsEmail(UserName, password, accountName);
+    await this.ses.enqueueSendUserCredentialsEmail(UserName, password, accountName);
+    return createUserResponse;
   }
 
   listUserAccessKeys (UserName) {

@@ -10,11 +10,12 @@ class SES {
   constructor (AWS) {
     this.ses = new AWS.SES({ apiVersion: '2010-12-01' });
     this.log = bunyan.createLogger({ name: 'ses' });
-    this.dynamoDb = new DynamoDB(new AWS.DynamoDB())
+    this.dynamoDb = new DynamoDB(new AWS.DynamoDB());
+    this.mailsQueue = [];
   }
 
   /**
-   * Sends an email to:
+   * Enqueues send mail job. Mail will be sent to:
    * a) Recipent - <username>@<domain_name> where domain name equals to env.EMAIL_DOMAIN
    * b) Service Administrator which is configured as env.MAIL_SENDER
    *
@@ -25,17 +26,12 @@ class SES {
    * @param {String} accountName - name of the account
    * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
    */
-  sendUserCredentialsEmail (username, password, accountName) {
+  enqueueSendUserCredentialsEmail (username, password, accountName) {
     const recipent = `${username}@${process.env.EMAIL_DOMAIN}`;
     const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
     const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nCredentials: ${username} / ${password}`;
 
-    this.log.info({
-      Source: process.env.MAIL_SENDER,
-      To: recipent,
-    }, 'Sending email...');
-
-    return this.ses.sendEmail({
+    this.mailsQueue.push({
       Source: process.env.MAIL_SENDER,
       Destination: {
         ToAddresses: [
@@ -53,11 +49,11 @@ class SES {
           },
         },
       },
-    }).promise();
+    });
   }
 
   /**
-   * Sends en email to:
+   * Enqueues send mail job. Mail will be sent to:
    * a) Team project mail - <project_name>@<domain_name> where domain name equals to env.EMAIL_DOMAIN
    * b) Service Administrator which is configured as env.MAIL_SENDER
    *
@@ -66,11 +62,11 @@ class SES {
    * If access keys relates to ROOT_ACCOUNT, then credentials are sent to administrator (MAIL_SENDER).
    *
    * @param {String} username - name of the user
-   * @param {String} credentials - access key and secret
+   * @param {Object} credentials - access key and secret
    * @param {String} accountName - name of the account
    * @returns {Promise<SES.Types.SendEmailResponse>} - send email promise
    */
-   async sendProgrammaticAccessKeys (username, credentials, accountName) {
+   async enqueueSendProgrammaticAccessKeys (username, credentials, accountName) {
     const subject = '[AWS-IAM-Manager] Your AWS account is ready.';
     const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
 
@@ -79,12 +75,7 @@ class SES {
     if (dynamoDbItem && dynamoDbItem.Item) {
       const recipent = dynamoDbItem.Item.ProjectMail.S;
 
-      this.log.info({
-        Source: process.env.MAIL_SENDER,
-        To: recipent,
-      }, 'Sending email...');
-
-      return this.ses.sendEmail({
+      this.mailsQueue.push({
         Source: process.env.MAIL_SENDER,
         Destination: {
           ToAddresses: [
@@ -102,14 +93,10 @@ class SES {
             },
           },
         },
-      }).promise();
-    } else if (accountName === process.env.ROOT_ACCOUNT) {
-      this.log.info({
-        Source: process.env.MAIL_SENDER,
-        To: process.env.MAIL_SENDER,
-      }, 'Sending email to administrator...');
+      });
 
-      return this.ses.sendEmail({
+    } else if (accountName === process.env.ROOT_ACCOUNT) {
+      this.mailsQueue.push({
         Source: process.env.MAIL_SENDER,
         Destination: {
           ToAddresses: [
@@ -126,10 +113,29 @@ class SES {
             },
           },
         },
-      }).promise();
+      });
     }
 
     return Promise.reject();
+  }
+
+  /**
+   * Sends enqueued emails sequentially.
+   */
+  async sendEnqueuedEmails () {
+    const report = [];
+
+    this.log({
+      count: report.length,
+    }, 'Processing emails from queue');
+
+    await this.mailsQueue.forEach(async mailData => {
+      const payload = await this.ses.sendEmail(mailData).promise();
+
+      report.push(payload);
+    });
+
+    return report;
   }
 }
 
