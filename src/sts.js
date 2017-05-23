@@ -49,6 +49,13 @@ class STS {
 
     return this.AWS;
   }
+
+  /**
+   * Reverts IAM Assume Role actions back to original IAM Role.
+   */
+  revertToOriginRole () {
+    this.AWS.config.credentials = new this.AWS.EnvironmentCredentials('AWS');
+  }
 }
 
 module.exports = STS;

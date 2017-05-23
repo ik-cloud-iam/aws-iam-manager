@@ -7,6 +7,7 @@ const Users = require('./users')
 const Groups = require('./groups');
 const Policies = require('./policies');
 const STS = require('./sts');
+const SES = require('./ses');
 const DynamoDB = require('./dynamodb');
 const utils = require('./utils');
 
@@ -29,16 +30,29 @@ function getProcessableAccountNames (payload) {
 }
 
 /**
+ * Reverts IAM role back to original one and sends mails.
+ *
+ * @param {STS} sts - STS Class instance
+ * @param {SES} ses - SES Class instance
+ * @returns {*}
+ */
+function sendMails (sts, ses) {
+  log.info('Sending emails from queue...');
+
+  sts.revertToOriginRole();
+  return ses.sendEnqueuedEmails();
+}
+
+/**
  * Downloads all data related to that account basing on unauthorized contentsUrl
  *
  * @param {String} contentsUrl - URL pointing to Github directory
  * @param {String} accountName - name of account
- * @param {STS} sts - AWS STS wrapper class
  *
  * @returns {{accountName: *, usersData: *, groupsData: *, policiesData: *, sts: *}} - account name,
  * parsed users, groups and policies JSON documents.
  */
-async function downloadAccountData (contentsUrl, accountName, sts) {
+async function downloadAccountData (contentsUrl, accountName) {
   const authedContentsUrl = `${contentsUrl}${utils.getAuth('&')}`;
 
   const { data } = await axios.get(authedContentsUrl);
@@ -62,30 +76,29 @@ async function downloadAccountData (contentsUrl, accountName, sts) {
     usersData,
     groupsData,
     policiesData,
-    sts,
   };
 }
 
 /**
  * Performs IAM mutations on selected AWS account.
  *
- * @param {accountName, usersData, policiesData, groupsData, sts} data - structure wrapper for accountName, usersDasta, policiesData, groupsData
+ * @param {any} data - structure wrapper for accountName, usersDasta, policiesData, groupsData
  * and sts context
  * @returns {{usersUpdateResult: *, policiesUpdateResult: ({createResult, deleteResult}|*), groupsUpdateResult: *, policiesAssociationsUpdateResult: *}} - returns report of mutations
  */
 async function processAccount (data) {
   const {
-    accountName, usersData, policiesData, groupsData, sts,
+    accountName, usersData, policiesData, groupsData, sts, ses
   } = data;
 
   log.info({ accountName }, 'Processing account...');
 
-  const assumedAWS = await sts.assumeRole(accountName);
-  const assumedIam = new assumedAWS.IAM();
+  const assumedAWSContext = await sts.assumeRole(accountName);
+  const assumedIam = new assumedAWSContext.IAM();
 
   const policies = new Policies(assumedIam);
   const groups = new Groups(assumedIam, policies);
-  const users = new Users(assumedIam, groups, assumedAWS);
+  const users = new Users(assumedIam, ses, groups);
 
   const usersUpdateResult = await users.update(usersData, accountName);
   const policiesUpdateResult = await policies.update(policiesData);
@@ -106,18 +119,18 @@ async function processAccount (data) {
  *
  * @param {Array} accounts - list of account names taken from Github repository folders
  * @param {STS} sts - AWS-SDK STS wrapper
- *
+ * @param {SES} ses - AWS-SDK SES wrapper
  * @returns {Array} - array of processing results
  */
-async function processAccountsSequentially (accounts, sts) {
+async function processAccountsSequentially (accounts, sts, ses) {
   const results = [];
 
   for (let i = 0; i < accounts.length; i += 1) {
     const account = accounts[i];
 
     try {
-      const data = await downloadAccountData(account.url, account.name, sts);
-      const result = await processAccount(data);
+      const data = await downloadAccountData(account.url, account.name);
+      const result = await processAccount(Object.assign({}, data, { ses, sts }));
 
       results.push({
         account,
@@ -125,6 +138,7 @@ async function processAccountsSequentially (accounts, sts) {
       });
     } catch (err) {
       log.warn({
+        err,
         message: err.message,
         stack: err.stack,
         account,
@@ -133,6 +147,7 @@ async function processAccountsSequentially (accounts, sts) {
       results.push({
         account,
         error: {
+          err,
           message: err.message,
           stack: err.stack,
         },
@@ -153,14 +168,18 @@ module.exports.handler = (event, context, callback) => {
 
   const dynamoDb = new DynamoDB(new AWS.DynamoDB());
   const sts = new STS(AWS, dynamoDb);
+  const ses = new SES(AWS);
 
   axios.get(contentsUrl).then(payload => {
     const accounts = getProcessableAccountNames(payload);
 
     log.info({ accounts }, 'Processing accounts...');
 
-    processAccountsSequentially(accounts, sts).then(data => {
-      callback(null, { data });
+    processAccountsSequentially(accounts, sts, ses).then(data => {
+      sendMails(sts, ses).then(sendEmailData => {
+        callback(null, { data, sendEmailData });
+      });
     });
+
   }).catch(err => callback(null, { err }));
 };
