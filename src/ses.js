@@ -125,7 +125,7 @@ class SES {
   async sendEnqueuedEmails () {
     const report = [];
 
-    this.log({
+    this.log.info({
       count: report.length,
     }, 'Processing emails from queue');
 
