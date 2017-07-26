@@ -69,50 +69,34 @@ class SES {
     const body = `Your IAM User has been created.\n\nAccount: ${accountName}\nUsername: ${username}\nCredentials: ${JSON.stringify(credentials)}`;
 
     const dynamoDbItem = await this.dynamoDb.getItem(accountName);
+    const mailObject = {
+      Source: process.env.MAIL_SENDER,
+      Destination: {
+        ToAddresses: [
+          process.env.MAIL_SENDER,
+        ],
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+        },
+        Body: {
+          Text: {
+            Data: body,
+          },
+        },
+      },
+    };
 
     if (dynamoDbItem && dynamoDbItem.Item) {
       const recipent = dynamoDbItem.Item.ProjectMail.S;
 
-      this.mailsQueue.push({
-        Source: process.env.MAIL_SENDER,
-        Destination: {
-          ToAddresses: [
-            process.env.MAIL_SENDER,
-            recipent,
-          ],
-        },
-        Message: {
-          Subject: {
-            Data: subject,
-          },
-          Body: {
-            Text: {
-              Data: body,
-            },
-          },
-        },
-      });
+      mailObject.Destination.ToAddresses.push(recipent);
+      this.mailsQueue.push(mailObject);
 
       return true;
     } else if (accountName === process.env.ROOT_ACCOUNT) {
-      this.mailsQueue.push({
-        Source: process.env.MAIL_SENDER,
-        Destination: {
-          ToAddresses: [
-            process.env.MAIL_SENDER,
-          ],
-        },
-        Message: {
-          Subject: {
-            Data: subject,
-          },
-          Body: {
-            Text: {
-              Data: body,
-            },
-          },
-        },
-      });
+      this.mailsQueue.push(mailObject);
 
       return true;
     }
