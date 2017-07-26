@@ -21,9 +21,7 @@ describe('DynamoDB Service', () => {
   });
 
   describe('#getItem', () => {
-    AWS_MOCK.mock('DynamoDB', 'getItem', (params, callback) => {
-      callback(null, { item: 1 });
-    });
+    AWS_MOCK.mock('DynamoDB', 'getItem', (params, callback) => callback(null, { item: 1 }));
     AWS_MOCK.setSDKInstance(AWS);
 
     const dynamo = new AWS.DynamoDB({ region: 'us-east-1' });

@@ -3,9 +3,7 @@ const AWS_MOCK = require('aws-sdk-mock');
 const Policies = require('../Policies');
 
 describe('Policies Service', () => {
-  AWS_MOCK.mock('IAM', 'createPolicy', (params, callback) => {
-    callback(null, params);
-  });
+  AWS_MOCK.mock('IAM', 'createPolicy', (params, callback) => callback(null, params));
   AWS_MOCK.setSDKInstance(AWS);
 
   const iam = new AWS.IAM({ region: 'us-east-1' });

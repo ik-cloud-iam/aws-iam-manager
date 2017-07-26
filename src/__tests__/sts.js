@@ -8,9 +8,7 @@ describe('STS Service', () => {
     const temporaryRoleArn = '123';
 
     AWS_MOCK.mock('DynamoDB', 'getItem', (params, callback) => {
-      if (params.Key.account_name.S === 'notExistingAccount') {
-        return callback(null, { notItem: {} });
-      }
+      if (params.Key.account_name.S === 'notExistingAccount') return callback(null, { notItem: {} });
       return callback(null, { Item: { RoleArn: { S: temporaryRoleArn } } });
     });
     AWS_MOCK.setSDKInstance(AWS);
