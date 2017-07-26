@@ -76,4 +76,15 @@ describe('Policies Service', () => {
       });
     });
   });
+
+  describe('#removePolicy', () => {
+    it('detaches all entities and deletes policy', done => {
+      const policyArn = 'ARN';
+
+      service.removePolicy(policyArn).then(data => {
+        expect(data.PolicyArn).toBe(policyArn);
+        done();
+      });
+    });
+  });
 });
