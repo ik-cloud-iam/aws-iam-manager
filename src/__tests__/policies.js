@@ -3,7 +3,18 @@ const AWS_MOCK = require('aws-sdk-mock');
 const Policies = require('../Policies');
 
 describe('Policies Service', () => {
+  const groupsWithPolicy = [{
+    GroupName: 'g_first',
+  }, {
+    GroupName: 'g_second',
+  }];
+
   AWS_MOCK.mock('IAM', 'createPolicy', (params, callback) => callback(null, params));
+  AWS_MOCK.mock('IAM', 'deletePolicy', (params, callback) => callback(null, params));
+  AWS_MOCK.mock('IAM', 'detachGroupPolicy', (params, callback) => callback(null, params));
+  AWS_MOCK.mock('IAM', 'listEntitiesForPolicy', (params, callback) => callback(null, {
+    PolicyGroups: groupsWithPolicy
+  }));
   AWS_MOCK.mock('IAM', 'listPolicies', (params, callback) => callback(null, {
     Policies: [{
       PolicyName: 'first',
@@ -47,6 +58,20 @@ describe('Policies Service', () => {
           PolicyName: 'first',
           data: 1,
         });
+        done();
+      });
+    });
+  });
+
+  describe('#detachFromAllEntities', () => {
+    it('detaches all attached entities', done => {
+      const policyArn = 'ARN';
+
+      service.detachFromAllEntities(policyArn).then(data => {
+        expect(data).toEqual(groupsWithPolicy.map(group => ({
+          GroupName: group.GroupName,
+          PolicyArn: policyArn,
+        })));
         done();
       });
     });

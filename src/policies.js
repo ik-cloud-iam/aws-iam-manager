@@ -32,11 +32,15 @@ class Policies {
       PathPrefix: process.env.USERS_PATH,
     }).promise();
 
-    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
-      this.iam.detachGroupPolicy({
+    console.log(entitiesWithAttachedPolicy);
+
+    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group => {
+      console.log(group);
+      return this.iam.detachGroupPolicy({
         GroupName: group.GroupName,
         PolicyArn
-      }).promise());
+      }).promise();
+    });
 
     this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
