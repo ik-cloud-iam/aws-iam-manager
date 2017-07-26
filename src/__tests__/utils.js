@@ -28,11 +28,6 @@ describe('#getJson', () => {
   });
 
   it('returns correct JSON for corresponding encoded YAML', (done) => {
-    moxios.stubRequest('/data', {
-      status: 200,
-      responseText: 'ZGF0YToNCiAgYXJyYXk6DQogICAgLSBpdGVtDQogICAgICA='
-    });
-
     moxios.withMock(() => {
       getJson('/data').then(data => {
         expect(data).toEqual({
