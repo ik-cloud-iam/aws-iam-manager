@@ -18,9 +18,11 @@ describe('Policies Service', () => {
   AWS_MOCK.mock('IAM', 'listPolicies', (params, callback) => callback(null, {
     Policies: [{
       PolicyName: 'first',
+      Arn: '123',
       data: 1,
     }, {
       PolicyName: 'second',
+      Arn: '1234',
     }]
   }));
   AWS_MOCK.setSDKInstance(AWS);
@@ -56,6 +58,7 @@ describe('Policies Service', () => {
       service.getPolicy(policyName).then(data => {
         expect(data[0]).toEqual({
           PolicyName: 'first',
+          Arn: '123',
           data: 1,
         });
         done();
@@ -83,6 +86,25 @@ describe('Policies Service', () => {
 
       service.removePolicy(policyArn).then(data => {
         expect(data.PolicyArn).toBe(policyArn);
+        done();
+      });
+    });
+  });
+
+  describe('#update', () => {
+    it('updates account policies correctly', done => {
+      const json = {
+        policies: [{
+          name: '1',
+          document: 'doc'
+        }]
+      };
+
+      service.update(json).then(data => {
+        expect(data).toEqual({
+          createResult: [{ PolicyName: '1', PolicyDocument: '"doc"', Path: '' }],
+          deleteResult: [{ PolicyArn: '123' }, { PolicyArn: '1234' }],
+        });
         done();
       });
     });
