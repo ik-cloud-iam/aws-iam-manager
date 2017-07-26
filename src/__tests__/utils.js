@@ -2,6 +2,7 @@ const { getAuth } = require('../utils');
 
 describe('getAuth(joinChar = \'?\')', () => {
   test('returns empty string if env variable is not set', () => {
+    process.env.GITHUB_ACCESS_TOKEN = '';
     expect(getAuth()).toBe('');
   });
 
