@@ -16,7 +16,7 @@ function getAuth (joinChar = '?') {
 }
 
 /**
- * Returns YAML to JSON parsed data from URL.
+ * Returns JSON representation of decoded YAML downloaded from selected URL
  *
  * @param {String} url - URL of resource
  * @returns {Object} in JSON format, representation of YAML
