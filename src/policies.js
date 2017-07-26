@@ -16,7 +16,7 @@ class Policies {
     }).promise();
   }
 
-  async getPolicyArn (PolicyName) {
+  async getPolicy (PolicyName) {
     this.log.info({ PolicyName }, 'Getting policy...');
 
     const payload = await this.iam.listPolicies({
@@ -32,11 +32,12 @@ class Policies {
       PathPrefix: process.env.USERS_PATH,
     }).promise();
 
-    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group =>
-      this.iam.detachGroupPolicy({
+    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group => {
+      return this.iam.detachGroupPolicy({
         GroupName: group.GroupName,
         PolicyArn
-      }).promise());
+      }).promise();
+    });
 
     this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 

@@ -8,7 +8,7 @@ const YAML = require('js-yaml');
  * @returns {String} Result of appending.
  */
 function getAuth (joinChar = '?') {
-  if (process.env.hasOwnProperty('GITHUB_ACCESS_TOKEN')) {
+  if (process.env.GITHUB_ACCESS_TOKEN) {
     return `${joinChar}access_token=${process.env.GITHUB_ACCESS_TOKEN}`;
   }
 
