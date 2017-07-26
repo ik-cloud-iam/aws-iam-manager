@@ -1,6 +1,7 @@
-const { getAuth } = require('../utils');
+const moxios = require('moxios');
+const { getAuth, getJson } = require('../utils');
 
-describe('getAuth(joinChar = \'?\')', () => {
+describe('#getAuth', () => {
   test('returns empty string if env variable is not set', () => {
     process.env.GITHUB_ACCESS_TOKEN = '';
     expect(getAuth()).toBe('');
@@ -17,3 +18,42 @@ describe('getAuth(joinChar = \'?\')', () => {
   });
 });
 
+describe('#getJson', () => {
+  beforeEach(() => {
+    moxios.install();
+  });
+
+  afterEach(() => {
+    moxios.uninstall();
+  });
+
+  it('returns correct JSON for corresponding encoded YAML', (done) => {
+    moxios.stubRequest('/data', {
+      status: 200,
+      responseText: 'ZGF0YToNCiAgYXJyYXk6DQogICAgLSBpdGVtDQogICAgICA='
+    });
+
+    moxios.withMock(() => {
+      getJson('/data').then(data => {
+        expect(data).toEqual({
+          data: {
+            array: ['item'],
+          },
+        });
+        done();
+      });
+
+      moxios.wait(() => {
+        const request = moxios.requests.mostRecent();
+
+        request.respondWith({
+          status: 200,
+          response: {
+            content: 'ZGF0YToNCiAgYXJyYXk6DQogICAgLSBpdGVtDQogICAgICA=',
+            encoding: 'base64',
+          },
+        });
+      })
+    });
+  });
+});

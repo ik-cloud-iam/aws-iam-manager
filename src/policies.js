@@ -16,7 +16,7 @@ class Policies {
     }).promise();
   }
 
-  async getPolicyArn (PolicyName) {
+  async getPolicy (PolicyName) {
     this.log.info({ PolicyName }, 'Getting policy...');
 
     const payload = await this.iam.listPolicies({

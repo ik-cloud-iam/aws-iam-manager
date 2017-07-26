@@ -49,7 +49,7 @@ class Groups {
   async attachGroupPolicy (GroupName, PolicyName) {
     this.log.info({ GroupName, PolicyName }, 'Attaching policy to group');
 
-    const policies = await this.policies.getPolicyArn(PolicyName);
+    const policies = await this.policies.getPolicy(PolicyName);
 
     if (policies.length === 0) {
       this.log.error({ PolicyName }, 'Requested policy not found!');

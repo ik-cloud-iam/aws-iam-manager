@@ -4,6 +4,14 @@ const Policies = require('../Policies');
 
 describe('Policies Service', () => {
   AWS_MOCK.mock('IAM', 'createPolicy', (params, callback) => callback(null, params));
+  AWS_MOCK.mock('IAM', 'listPolicies', (params, callback) => callback(null, {
+    Policies: [{
+      PolicyName: 'first',
+      data: 1,
+    }, {
+      PolicyName: 'second',
+    }]
+  }));
   AWS_MOCK.setSDKInstance(AWS);
 
   const iam = new AWS.IAM({ region: 'us-east-1' });
@@ -25,6 +33,20 @@ describe('Policies Service', () => {
         expect(data.Path).toBe(path);
         expect(data.PolicyName).toBe(policyName);
         expect(data.PolicyDocument).toBe(policyDocument);
+        done();
+      });
+    });
+  });
+
+  describe('#getPolicy', () => {
+    it('gets correct policy', done => {
+      const policyName = 'first';
+
+      service.getPolicy(policyName).then(data => {
+        expect(data[0]).toEqual({
+          PolicyName: 'first',
+          data: 1,
+        });
         done();
       });
     });
