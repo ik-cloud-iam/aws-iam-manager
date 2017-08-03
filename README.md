@@ -10,8 +10,8 @@ Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign
 You can find example repository using #aws-iam-manager here: [https://github.com/RafalWilinski/aws-permissions](https://github.com/RafalWilinski/aws-permissions)
 
 ### Prerequisities
-- Node.js (4.3 - same as Lambda runtime!)
-- Serverless Framework installed globally (preferably 1.9)
+- Node.js
+- Serverless Framework
 - AWS IAM Access/Secret keys set in `~/.aws/credentials` to user with sufficient permissions
 
 ### Installation
