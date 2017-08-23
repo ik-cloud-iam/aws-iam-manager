@@ -7,20 +7,19 @@ Manage multiple AWS Account IAM Users, Groups and Policies using Github Reposito
 ![Overview](overview.png)
 
 Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign to specific groups with attached policies.
-You can find example repository using #aws-iam-manager here: [https://github.com/RafalWilinski/aws-permissions](https://github.com/RafalWilinski/aws-permissions)
 
 ### Prerequisities
-- Node.js (4.3 - same as Lambda runtime!)
-- Serverless Framework installed globally (preferably 1.9)
-- AWS IAM Access/Secret keys set in `~/.aws/credentials` to user with sufficient permissions
+- Node.js LTS or newer
+- Serverless Framework
 
 ### Installation
 
-**To deploy properly working function use node 4.3.x, same as AWS Lambda latest runtime**
+In order to integrate AWS Lambda with Github repo, you have to create a Webhook which will send data through AWS SNS. Here's how to do that:
 
-1. Execute ```serverless deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
-2. Navigate to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that data to setup Github hook.
-3. Navigate to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:
+0. Run `npm run prepare-secret` and fill out values in `secrets.yml`
+1. Execute ```npm run deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
+2. Go to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that to setup Github hook.
+3. Go to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:
 **Here is where we find SNS Topic Amazon Resource Name**
 ![SNS Topic ARN](SNSTopic.png)
 It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerNotifyTopic`. Make sure you are in `us-east-1` region, as shown in the picture above.
@@ -34,6 +33,10 @@ It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerN
 2. Create Policy document allowing our Lambda to assume role of other accounts IAM role. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-1)
 3. Update accounts configuration in DynamoDB table called `aim_roles`. [Tutorial how to do that here](http://slides.com/rafalwilinski/deck-2)
 
+### How it works
+Once a change is made to a master branch code, a Webhook send an event through SNS to AWS Lambda. Lambda code downloads whole repository. Going folder by folder, it *impersonates* other account roles using Cross-Account access credentials which are stored inside DynamoDB table `aim_users`.
+Once impersonated, code detects any differences between code from repository and IAM state and applies any needed changes. If any new user gets created, it sends an email using AWS SES to system administrator and user that has been just created.
+After processing account, Lambda switches its role back and starts processing another folder-account until it traverses whole repository.
 
 ### Repository Structure
 ##### Files structure
@@ -87,7 +90,7 @@ Following setup will create two users, two groups and one policy. User `sample.u
 
 
 ### Private Repositories
-In case your repository is private you need to include `access_token` in every request to Github API. To do that, generate new Personal Access Token, copy `secrets.yml.example` to `secrets.yml` (or run `npm run prepare-secrets`) and paste there.
+In case your repository is private you need to include `access_token` in every request to Github API. To do that, generate new Personal Access Token and copy that to `secrets.yml` `GITHUB_ACCESS_TOKEN`.
 
 ### Local Development
 For ease and speed of development it's highly recommended to test code locally using ```npm run invoke``` script which will run function locally with data from `event.json`.
