@@ -12,19 +12,22 @@ Basing on repository contents, AWS-IAM-Manager (`AIM`) will create users, assign
 - Node.js LTS or newer
 - Serverless Framework
 
-### Installation
+
+### Deploying
+0. Run `npm run prepare-secret` and fill out values in `secrets.yml`
+1. Execute ```npm run deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). By default, function will be deployed to US East (N. Virginia).
+
+### Setting up webhook
 
 In order to integrate AWS Lambda with Github repo, you have to create a Webhook which will send data through AWS SNS. Here's how to do that:
 
-0. Run `npm run prepare-secret` and fill out values in `secrets.yml`
-1. Execute ```npm run deploy``` and wait for results. This will deploy a function receiving events from [Amazon Simple Notification Service](https://aws.amazon.com/sns/). Those events will be sent from Github when your repository contents change (putting to SNS topic/queue). The function will live in US East (N. Virginia).
-2. Go to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that to setup Github hook.
-3. Go to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:
+1. Go to `https://console.aws.amazon.com/iam/home?region=<YOUR_REGION_NAME>#/users/<YOUR_USER>?section=security_credentials` and click `Create access key`. Wait couple seconds to generate and then download generated CSV file or copy `Access Key` & `Secret access key`. You'll need that to setup Github hook.
+2. Go to `https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/aws-iam-manager-dev-IAMManagerSNSHandler?tab=triggers` and copy the value under `SNS: IAMManagerNotifyTopic` like in the image below:
 **Here is where we find SNS Topic Amazon Resource Name**
 ![SNS Topic ARN](SNSTopic.png)
 It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerNotifyTopic`. Make sure you are in `us-east-1` region, as shown in the picture above.
-4. Go to `https://github.com/YOUR_NAME/REPO/settings/hooks/new?service=amazonsns` and fill form with data you retrieved in steps 2 & 3. Lastly, click `Add Service`.
-5. Now `aws-iam-manager` will continuously monitor your GitHub repo and reflect changes on AWS accounts.
+3. Go to `https://github.com/YOUR_NAME/REPO/settings/hooks/new?service=amazonsns` and fill form with data you retrieved in steps 2 & 3. Lastly, click `Add Service`.
+4. Now `aws-iam-manager` will continuously monitor your GitHub repo and reflect changes on AWS accounts.
 
 ### Setup
 `AIM` is capable of managing accounts with Cross-Account access. In order to do that we need to do three things:
@@ -35,7 +38,9 @@ It will look like this: `arn:aws:sns:us-east-1:<YOUR_AWS_ACC_NUMBER>:IAMManagerN
 
 ### How it works
 Once a change is made to a master branch code, a Webhook send an event through SNS to AWS Lambda. Lambda code downloads whole repository. Going folder by folder, it *impersonates* other account roles using Cross-Account access credentials which are stored inside DynamoDB table `aim_users`.
+
 Once impersonated, code detects any differences between code from repository and IAM state and applies any needed changes. If any new user gets created, it sends an email using AWS SES to system administrator and user that has been just created.
+
 After processing account, Lambda switches its role back and starts processing another folder-account until it traverses whole repository.
 
 ### Repository Structure
