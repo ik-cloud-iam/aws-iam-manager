@@ -1,5 +1,6 @@
 const bunyan = require('bunyan');
 const difference = require('lodash.difference');
+const Promise = require('bluebird');
 
 class Groups {
   constructor (iam, policies) {
@@ -116,7 +117,7 @@ class Groups {
   update (json) {
     this.log.info({ newData: json }, 'Updating groups...');
 
-    const promises = json.groups.map(group =>
+    return Promise.map(json.groups, group =>
       this.iam.getGroup({ GroupName: group.name }).promise().then(data => {
         this.log.info({ data }, 'Group info');
 
@@ -125,10 +126,7 @@ class Groups {
         this.log.warn({ error }, 'Error while updating group');
 
         return this.forgeNewGroup(group, error);
-      })
-    );
-
-    return Promise.all(promises);
+      }), { concurrency: 1 });
   }
 
   updatePolicies (json) {

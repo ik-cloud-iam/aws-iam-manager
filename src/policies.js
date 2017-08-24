@@ -1,4 +1,5 @@
 const bunyan = require('bunyan');
+const Promise = require('bluebird');
 
 class Policies {
   constructor (iam) {
@@ -32,16 +33,15 @@ class Policies {
       PathPrefix: process.env.USERS_PATH,
     }).promise();
 
-    const detachRequests = entitiesWithAttachedPolicy.PolicyGroups.map(group => {
-      return this.iam.detachGroupPolicy({
+    const detachRequests = Promise.map(entitiesWithAttachedPolicy.PolicyGroups, group =>
+      this.iam.detachGroupPolicy({
         GroupName: group.GroupName,
         PolicyArn
-      }).promise();
-    });
+      }).promise(), { concurrency: 1 });
 
     this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
-    return Promise.all(detachRequests);
+    return detachRequests;
   }
 
   async removePolicy (PolicyArn) {
@@ -59,15 +59,21 @@ class Policies {
 
     this.log.info(data, 'Old Policies list');
 
-    // Because we have not power to get current policies document and compare them
+    // Because we don't have ability to get current policies document and compare them
     // We have to remove all policies and re-create them from scratch.
     // Policies are also immutable, it's possible to version them but AWS limits version count to 5.
-    const deleteResult = await Promise.all(data.Policies.map(policy => this.removePolicy(policy.Arn)));
+    const deleteResult = await Promise.map(
+      data.Policies,
+      policy => this.removePolicy(policy.Arn),
+      { concurrency: 1 }
+    );
 
     this.log.info({ deleteResult }, 'Old policies removed, creating new...');
 
-    const createResult = await Promise.all(
-      json.policies.map(policy => this.createPolicy(policy.name, JSON.stringify(policy.document)))
+    const createResult = await Promise.map(
+      json.policies,
+      policy => this.createPolicy(policy.name, JSON.stringify(policy.document)),
+      { concurrency: 1 }
     );
 
     this.log.info({ createResult }, 'New policies created');
