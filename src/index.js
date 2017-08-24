@@ -12,6 +12,7 @@ const utils = require('./utils');
 const log = bunyan.createLogger({ name: 'index' });
 
 AWS.config.update({ region: process.env.REGION });
+AWS.config.update({ retryDelayOptions: { base: 1000 } });
 
 /**
  * Returns a list of processable accounts from response payload. Basicly filters out files which
