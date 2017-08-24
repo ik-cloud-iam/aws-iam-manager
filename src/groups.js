@@ -126,8 +126,7 @@ class Groups {
         this.log.warn({ error }, 'Error while updating group');
 
         return this.forgeNewGroup(group, error);
-      })
-      , { concurrency: 1 });
+      }), { concurrency: 1 });
   }
 
   updatePolicies (json) {

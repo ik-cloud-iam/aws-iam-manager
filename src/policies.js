@@ -37,8 +37,7 @@ class Policies {
       this.iam.detachGroupPolicy({
         GroupName: group.GroupName,
         PolicyArn
-      }).promise()
-      , { concurrency: 1 });
+      }).promise(), { concurrency: 1 });
 
     this.log.info({ entitiesWithAttachedPolicy, PolicyArn }, 'Policy detached from requested entities');
 
