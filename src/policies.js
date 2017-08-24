@@ -60,7 +60,7 @@ class Policies {
 
     this.log.info(data, 'Old Policies list');
 
-    // Because we have not power to get current policies document and compare them
+    // Because we don't have ability to get current policies document and compare them
     // We have to remove all policies and re-create them from scratch.
     // Policies are also immutable, it's possible to version them but AWS limits version count to 5.
     const deleteResult = await Promise.map(
